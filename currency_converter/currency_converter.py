@@ -137,6 +137,8 @@ class CurrencyConverter(object):
         :param verbose: Set to True to print what is going on under the hood. 
         """
         # Global options 
+        # example instantiation of self._rates = [[date(1), date(2), date(3)], [date(4), date(5), date(6)]] where each array in the 2d array represents a currency
+        # each rate in self._rates has a date
         self._rates = None 
         self.bounds = None 
         self.currencies = None 
@@ -314,20 +316,109 @@ class CurrencyConverter(object):
                 # if the passed currency is the same as the reference currency then no conversion is needed so return 1
                 return self.cast('1')
             if date not in self._rates[currency]:
-                # 
+                # if date is not in self._rates then assign the first_date and last_date in self.bounds to first_date and last_date variables 
                 first_date, last_date = self.bounds[currency]
 
                 if not self.fallback_on_wrong_date: 
+                    # if self.fallback_on_wrong is false then throw RateNotFoundError
                     raise RateNotFoundError('{0} not in {1} bounds {2}/{3}'.format(
                         date, currency, first_date, last_date))
 
                 if date < first_date:
+                    # if when self.fallback_on_wrong is true and current date in self._rates is before first_date(from self.bounds)
+                    # then fallback_date should be the first_date
                     fallback_date = first_date 
                 elif date > last_date: 
+                    # if current date is after last_date(from self.bounds) then fallback_date should be the last_date 
                     fallback_date = last_date 
                 else: 
+                    # this means this date is not in self.rates and in between the first and last dates in self.bounds 
+                    # which is not possible so throw an AssertionError to indicate bug in the code 
                     raise AssertionError('Should never happen, bug in the code!')
-                
+
+                if self.verbose:
+                    print(r'/!\ {0} not in {1} bounds {2}/{3}, falling back to {4}'.format(
+                        date, currency, first_date, last_date, fallback_date 
+                    ))
+                # assign fallback_date to current date iteration
+                date = fallback_date 
+            # find the fallback_date in the self._rates dictionary 
+            rate = self._rates[currency][date]
+            if rate is None:
+                # if fallback_date is not found in self._rates  
+                # then throw RateNotFoundError
+                raise RateNotFoundError('{0} has no rate for {1}'.format(currency, date))
+            # if the fallback_rate is found in self._rates 
+            # then return that rate 
+            return rate 
+
+        def convert(self, amount, currency, new_currency='EUR', date=NONE):
+            """
+            Convert amount from a currency to another one.
+
+            :param float amount: The amount of `currency` to convert. 
+            :param str currency: The currency to convert from.
+            :param str new_currency: The currency to convert to.    
+            :param datetime.date date: Use the conversion rate of this date. If this 
+                is not given, the most recent rate is used.
+            :return: The value of `amount` in `new_currency`
+            :retype: float 
+
+            >>> from datetime import date 
+            >>> c = CurrencyConverter()
+            >>> c.convert(100, 'EUR', 'USD', date=date(2014, 3, 28))
+            137.5...
+            >>> c.convert(100, 'USD', date=date(2010, 11, 21))
+            72.67...
+            >>> c.convert(100, 'BGN', date=date(2010, 11, 21))
+            Traceback (most recent call last):
+            RateNotFoundError: BGN has no rate for 2010-11-21
+            """
+            for c in currency, new_currency: 
+                if c not in self.currencies:
+                    # if either currency or new_currency is not in self.currencies  
+                    # then throw ValueError
+                    raise ValueError('{0} is not a supported currency'.format(c))
+            
+            if date is None: 
+                # if date is null 
+                # then get the latest date in self.bounds 
+                date = self.bounds[currency].last_date 
+            else:
+                try:
+                    # date is of type datetime so we use date.date() to 
+                    # get the date in string form 
+                    date = date.date() # fallback if input was a datetime object 
+                except AttributeError:
+                    pass 
+
+            # getting the currency rate for that specific date 
+            # for both input and output currencies 
+            # self._get_rate will throw RateNotFoundError if a rate was not found for that specific date
+            r0 = self._get_rate(currency, date)
+            r1 = self._get_rate(new_currency, date)
+            # the formula for currency conversion is:
+            # = ((amount) / (rate #1 * rate #2))
+            return self.cast(amount) / r0 * r1 
+
+class S3CurrencyConverter(CurrencyConverter):
+    """
+    Load the ECB CSV file from an S3 key instead of from a local file.
+    The first argument should be an instance of boto.s3.key.Key (or any other
+    object that provides a get_contents_as_string() method which returns the 
+    CSV file as a string).
+    """
+    def __init__(self, currency_file, **kwargs):
+        """
+        Make currency_file a required attribute
+        """
+        super(S3CurrencyConverter, self).__init__(currency_file, **kwargs)
+
+    def load_file(self, currency_file):
+        lines = currency_file.get_contents_as_string().splitlines()
+        self.load_lines(lines)
+
+    
 
 
 
