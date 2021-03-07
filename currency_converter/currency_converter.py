@@ -139,6 +139,15 @@ class CurrencyConverter(object):
         # Global options 
         # example instantiation of self._rates = [[date(1), date(2), date(3)], [date(4), date(5), date(6)]] where each array in the 2d array represents a currency
         # each rate in self._rates has a date
+        self.fallback_on_wrong_date = fallback_on_wrong_date
+        self.fallback_on_missing_rate = fallback_on_missing_rate 
+        self.fallback_on_missing_rate_method = fallback_on_missing_rate_method 
+        self.ref_currency = ref_currency 
+        self.na_values = na_values 
+        self.cast = Decimal if decimal else float 
+        self.verbose = verbose 
+
+        # Will be filled once the file is loaded 
         self._rates = None 
         self.bounds = None 
         self.currencies = None 
@@ -146,96 +155,94 @@ class CurrencyConverter(object):
         if currency_file is not None: # if currency file arg is passed, pass the file to load_file function
             self.load_file(currency_file)
 
-     
+    def load_file(self, currency_file):
+        """
+        To be subclassed if alternate methods of loading data
+        """
+        if currency_file.startswith(('http://', 'https://')):
+            content = urlopen(currency_file).read() # if file is a url then open it with urlopen() and read page contents
+        else:
+            with open(currency_file, 'rb') as f:
+                content = f.read() # if a local file is passed then just read it 
 
-        def load_file(self, currency_file):
-            """
-            To be subclassed if alternate methods of loading data
-            """
-            if currency_file.startswith(('http://', 'https://')):
-                content = urlopen(currency_file).read() # if file is a url then open it with urlopen() and read page contents
-            else:
-                with open(currency_file, 'rb') as f:
-                    content = f.read() # if a local file is passed then just read it 
+        if currency_file.endswith('.zip'):
+            self.load_lines(get_lines_from_zip(content)) # if it is zip file then get the lines from that zip file(by calling that specific function) then call load_lines function to process those lines 
+        else:
+            self.load_lines(content.decode('utf-8').splitlines()) # else then split lines using splitlines() and pass that data to load_lines()
 
-            if currency_file.endswith('.zip'):
-                self.load_lines(get_lines_from_zip(content)) # if it is zip file then get the lines from that zip file(by calling that specific function) then call load_lines function to process those lines 
-            else:
-                self.load_lines(content.decode('utf-8').splitlines()) # else then split lines using splitlines() and pass that data to load_lines()
+    def load_lines(self, lines):
+        _rates = self._rates = defaultdict(dict)
+        na_values = self.na_values 
+        cast = self.cast 
 
-        def load_lines(self, lines):
-            _rates = self._rates = defaultdict(dict)
-            na_values = self.na_values 
-            cast = self.cast 
+        lines = iter(lines)
+        header = next(lines).strip().split(',')[1:]
 
-            lines = iter(lines)
-            header = next(lines).strip().split(',')[1:]
+        for line in lines:
+            line = line.strip().split(',')
+            date = parse_date(line[0])
+            for currency, rate in zip(header, line[1:]):
+                currency = currency.strip()
+                if rate not in na_values and currency: # if rate not in values frozenset then skip the empty currency
+                    _rates[currency][date] = cast(rate)
 
-            for line in lines:
-                line = line.strip().split(',')
-                date = parse_date(line[0])
-                for currency, rate in zip(header, line[1:]):
-                    currency = currency.strip()
-                    if rate not in na_values and currency: # if rate not in values frozenset then skip the empty currency
-                        _rates[currency][date] = cast(rate)
+            self.currencies = set(self._rates) | set([self.ref_currency])
+            self._compute_bounds()
 
-                self.currencies = set(self._rates) | set([self.ref_currency])
-                self._compute_bounds()
-
-                for currency in sorted(self._rates):
-                    self._set_missing_to_none(currency) # this function fills missing rates of a currency with the closed available ones 
-                    if self.fallback_on_missing_rate: # if fallback_on_missing_rate == True then use appropriate method 
-                        method = self.fallback_on_missing_rate_method
-                        if method == "linear_interpolation":
-                            self._user_linear_interpolation(currency)
-                        elif method == "last_known":
-                            self._use_last_known(currency)
-                        else:
-                            # if fallback method is not either of the two above then throw ValueError 
-                            raise ValueError("Unknown fallback method {0!r}".format(method))
+            for currency in sorted(self._rates):
+                self._set_missing_to_none(currency) # this function fills missing rates of a currency with the closed available ones 
+                if self.fallback_on_missing_rate: # if fallback_on_missing_rate == True then use appropriate method 
+                    method = self.fallback_on_missing_rate_method
+                    if method == "linear_interpolation":
+                        self._use_linear_interpolation(currency)
+                    elif method == "last_known":
+                        self._use_last_known(currency)
+                    else:
+                        # if fallback method is not either of the two above then throw ValueError 
+                        raise ValueError("Unknown fallback method {0!r}".format(method))
 
 
-        def _compute_bounds(self):
-            # self.bounds is a dict with entries in format:
-            # key = currency name
-            # value = (first_date, last_date)
-            self.bounds = dict((currency, Bounds(min(r), max(r)))
-                                # the value of self.bounds is a namedtuple where first date is in [0] and last date is in [1] positions
-                                for currency, r in iteritems(self._rates)) 
-                                # here currency is the key, r is the value
-                             
-            # this changing the value of self.bounds from ('first_date last_date') 
-            # to b.first_date and b.last_date where b is the value
-            self.bounds[self.ref_currency] = Bounds(
-                min(b.first_date for b in itervalues(self.bounds)),
-                max(b.last_date for b in itervalues(self.bounds))
-            )
+    def _compute_bounds(self):
+        # self.bounds is a dict with entries in format:
+        # key = currency name
+        # value = (first_date, last_date)
+        self.bounds = dict((currency, Bounds(min(r), max(r)))
+                            # the value of self.bounds is a namedtuple where first date is in [0] and last date is in [1] positions
+                            for currency, r in iteritems(self._rates)) 
+                            # here currency is the key, r is the value
+                            
+        # this changing the value of self.bounds from ('first_date last_date') 
+        # to b.first_date and b.last_date where b is the value
+        self.bounds[self.ref_currency] = Bounds(
+            min(b.first_date for b in itervalues(self.bounds)),
+            max(b.last_date for b in itervalues(self.bounds))
+        )
 
-        def _set_missing_to_none(self, currency):
-            """ 
-            This function fills missing rates of a currency with the closed 
-            available ones.
-            """
-            # the value of _rates dict which is in format: ('first_date last_date') will be assigned to rates variable 
-            rates = self._rates[currency]
-            # extracting first_date and last_date from self.bounds's value which is a named tuple with values ('first_date last_date')
-            first_date, last_date = self.bounds[currency]
+    def _set_missing_to_none(self, currency):
+        """ 
+        This function fills missing rates of a currency with the closed 
+        available ones.
+        """
+        # the value of _rates dict which is in format: ('first_date last_date') will be assigned to rates variable 
+        rates = self._rates[currency]
+        # extracting first_date and last_date from self.bounds's value which is a named tuple with values ('first_date last_date')
+        first_date, last_date = self.bounds[currency]
 
-            for date in list_dates_between(first_date, last_date):
-                if date not in rates:
-                    # if the list of dates inbetween first and last date are not the first_date or last_date values in rates then 
-                    # each date in that list of dates will be added to rates along with a value of None 
-                    rates[date] = None 
+        for date in list_dates_between(first_date, last_date):
+            if date not in rates:
+                # if the list of dates inbetween first and last date are not the first_date or last_date values in rates then 
+                # each date in that list of dates will be added to rates along with a value of None 
+                rates[date] = None 
 
-            if self.verbose:
-                # if in verbose mode then print out all the missing rates to sysout
-                missing = len([r for r in itervalues(rates) if r is None]) # for each value in rates if a value is empty(None) then add it to an array, finally count the length of the array to get the total # of missing rates 
-                if missing:
-                    print('{0}: {1} missing rates from {2} to {3} ({4} days)').format(
-                        currency, missing, first_date, last_date,
-                        1 + (last_date - first_date).days) 
+        if self.verbose:
+            # if in verbose mode then print out all the missing rates to sysout
+            missing = len([r for r in itervalues(rates) if r is None]) # for each value in rates if a value is empty(None) then add it to an array, finally count the length of the array to get the total # of missing rates 
+            if missing:
+                print('{0}: {1} missing rates from {2} to {3} ({4} days)').format(
+                    currency, missing, first_date, last_date,
+                    1 + (last_date - first_date).days) 
 
-        def _use_linear_interpolation(self, currency):
+    def _use_linear_interpolation(self, currency):
         """
         Fill missing rates of a currency.
 
@@ -243,6 +250,8 @@ class CurrencyConverter(object):
         (which is the first method of calculating missing rates).
         :param str currency: The currency to fill missing rates for.
         """
+        rates = self._rates[currency]
+        
         # tmp will store the closest rates forward and backward 
         tmp = defaultdict(lambda: [None, None]) # default value for this dict would be array containing [None, None]
 
@@ -262,7 +271,7 @@ class CurrencyConverter(object):
             # iterating thru sorted rates, assign each value to rate var, if rate is not null then closest_rate is give rate's value
             # and dist is set/reset to 0 
             rate = rates[date]
-            if rate in not None:
+            if rate is not None:
                 closest_rate = rate 
                 dist = 0 
             else: 
@@ -277,129 +286,129 @@ class CurrencyConverter(object):
                 print(('{0}: filling {1} missing rate using {2} ({3}d old) and'
                        '{4} ({5}d later)').format(currency, date, r0, d0, r1, d1))
                     
-        def _use_last_known(self, currency):
-            """
-            Fill missing rates of a currency
+    def _use_last_known(self, currency):
+        """
+        Fill missing rates of a currency
 
-            This is done by using the last known rate(which is the second method for calculating missing rates).
-            :param str currency: The currency to file missing rates for. 
-            """
-            rates = self._rates[currency]
+        This is done by using the last known rate(which is the second method for calculating missing rates).
+        :param str currency: The currency to file missing rates for. 
+        """
+        rates = self._rates[currency]
 
-            for date in sorted(rates):
-                rate = rates[date]
-                if rate in not None:
-                    # iterate thru the sorted rates, if rates value is not null then assign that value to last_rate and assign date(which is the key) to last_date var 
-                    last_rate, last_date = rate, date 
-                else:
-                    # if rates value is null then assign the last_rate to that key 
-                    rates[date] = last_rate 
-                    if self.verbose: 
-                        print('{0}: filling {1} missing rate using {2} from {3}'.format(
-                            currency, date, last_rate, last_date))
-
-        def _get_rate(self, currency, date):
-            """
-            Get a rate for a give currency and date. 
-            :param datetime.date date: the value for the currency param
-            
-            >>> from datetime import date 
-            >>> c = CurrencyConverter()
-            >>> c._get_rate('USD', date=date(2014, 3, 28)) 
-            1.375... # this is the currency rate for USD currency for date(2014, 3, 28) in the EUR stock market 
-            # if no value is found in self._rates dict then AssertionError is raised(see below)
-            >>> c._get_rate('BGN', date=date(2010, 11, 21))
-            Traceback (most recent call last):
-            RateNotFoundError: BGN has no rate for 2010-11-21
-            """
-            if currency == self.ref_currency:
-                # if the passed currency is the same as the reference currency then no conversion is needed so return 1
-                return self.cast('1')
-            if date not in self._rates[currency]:
-                # if date is not in self._rates then assign the first_date and last_date in self.bounds to first_date and last_date variables 
-                first_date, last_date = self.bounds[currency]
-
-                if not self.fallback_on_wrong_date: 
-                    # if self.fallback_on_wrong is false then throw RateNotFoundError
-                    raise RateNotFoundError('{0} not in {1} bounds {2}/{3}'.format(
-                        date, currency, first_date, last_date))
-
-                if date < first_date:
-                    # if when self.fallback_on_wrong is true and current date in self._rates is before first_date(from self.bounds)
-                    # then fallback_date should be the first_date
-                    fallback_date = first_date 
-                elif date > last_date: 
-                    # if current date is after last_date(from self.bounds) then fallback_date should be the last_date 
-                    fallback_date = last_date 
-                else: 
-                    # this means this date is not in self.rates and in between the first and last dates in self.bounds 
-                    # which is not possible so throw an AssertionError to indicate bug in the code 
-                    raise AssertionError('Should never happen, bug in the code!')
-
-                if self.verbose:
-                    print(r'/!\ {0} not in {1} bounds {2}/{3}, falling back to {4}'.format(
-                        date, currency, first_date, last_date, fallback_date 
-                    ))
-                # assign fallback_date to current date iteration
-                date = fallback_date 
-            # find the fallback_date in the self._rates dictionary 
-            rate = self._rates[currency][date]
-            if rate is None:
-                # if fallback_date is not found in self._rates  
-                # then throw RateNotFoundError
-                raise RateNotFoundError('{0} has no rate for {1}'.format(currency, date))
-            # if the fallback_rate is found in self._rates 
-            # then return that rate 
-            return rate 
-
-        def convert(self, amount, currency, new_currency='EUR', date=NONE):
-            """
-            Convert amount from a currency to another one.
-
-            :param float amount: The amount of `currency` to convert. 
-            :param str currency: The currency to convert from.
-            :param str new_currency: The currency to convert to.    
-            :param datetime.date date: Use the conversion rate of this date. If this 
-                is not given, the most recent rate is used.
-            :return: The value of `amount` in `new_currency`
-            :retype: float 
-
-            >>> from datetime import date 
-            >>> c = CurrencyConverter()
-            >>> c.convert(100, 'EUR', 'USD', date=date(2014, 3, 28))
-            137.5...
-            >>> c.convert(100, 'USD', date=date(2010, 11, 21))
-            72.67...
-            >>> c.convert(100, 'BGN', date=date(2010, 11, 21))
-            Traceback (most recent call last):
-            RateNotFoundError: BGN has no rate for 2010-11-21
-            """
-            for c in currency, new_currency: 
-                if c not in self.currencies:
-                    # if either currency or new_currency is not in self.currencies  
-                    # then throw ValueError
-                    raise ValueError('{0} is not a supported currency'.format(c))
-            
-            if date is None: 
-                # if date is null 
-                # then get the latest date in self.bounds 
-                date = self.bounds[currency].last_date 
+        for date in sorted(rates):
+            rate = rates[date]
+            if rate is not None:
+                # iterate thru the sorted rates, if rates value is not null then assign that value to last_rate and assign date(which is the key) to last_date var 
+                last_rate, last_date = rate, date 
             else:
-                try:
-                    # date is of type datetime so we use date.date() to 
-                    # get the date in string form 
-                    date = date.date() # fallback if input was a datetime object 
-                except AttributeError:
-                    pass 
+                # if rates value is null then assign the last_rate to that key 
+                rates[date] = last_rate 
+                if self.verbose: 
+                    print('{0}: filling {1} missing rate using {2} from {3}'.format(
+                        currency, date, last_rate, last_date))
 
-            # getting the currency rate for that specific date 
-            # for both input and output currencies 
-            # self._get_rate will throw RateNotFoundError if a rate was not found for that specific date
-            r0 = self._get_rate(currency, date)
-            r1 = self._get_rate(new_currency, date)
-            # the formula for currency conversion is:
-            # = ((amount) / (rate #1 * rate #2))
-            return self.cast(amount) / r0 * r1 
+    def _get_rate(self, currency, date):
+        """
+        Get a rate for a give currency and date. 
+        :param datetime.date date: the value for the currency param
+        
+        >>> from datetime import date 
+        >>> c = CurrencyConverter()
+        >>> c._get_rate('USD', date=date(2014, 3, 28)) 
+        1.375... # this is the currency rate for USD currency for date(2014, 3, 28) in the EUR stock market 
+        # if no value is found in self._rates dict then AssertionError is raised(see below)
+        >>> c._get_rate('BGN', date=date(2010, 11, 21))
+        Traceback (most recent call last):
+        RateNotFoundError: BGN has no rate for 2010-11-21
+        """
+        if currency == self.ref_currency:
+            # if the passed currency is the same as the reference currency then no conversion is needed so return 1
+            return self.cast('1')
+        if date not in self._rates[currency]:
+            # if date is not in self._rates then assign the first_date and last_date in self.bounds to first_date and last_date variables 
+            first_date, last_date = self.bounds[currency]
+
+            if not self.fallback_on_wrong_date: 
+                # if self.fallback_on_wrong is false then throw RateNotFoundError
+                raise RateNotFoundError('{0} not in {1} bounds {2}/{3}'.format(
+                    date, currency, first_date, last_date))
+
+            if date < first_date:
+                # if when self.fallback_on_wrong is true and current date in self._rates is before first_date(from self.bounds)
+                # then fallback_date should be the first_date
+                fallback_date = first_date 
+            elif date > last_date: 
+                # if current date is after last_date(from self.bounds) then fallback_date should be the last_date 
+                fallback_date = last_date 
+            else: 
+                # this means this date is not in self.rates and in between the first and last dates in self.bounds 
+                # which is not possible so throw an AssertionError to indicate bug in the code 
+                raise AssertionError('Should never happen, bug in the code!')
+
+            if self.verbose:
+                print(r'/!\ {0} not in {1} bounds {2}/{3}, falling back to {4}'.format(
+                    date, currency, first_date, last_date, fallback_date 
+                ))
+            # assign fallback_date to current date iteration
+            date = fallback_date 
+        # find the fallback_date in the self._rates dictionary 
+        rate = self._rates[currency][date]
+        if rate is None:
+            # if fallback_date is not found in self._rates  
+            # then throw RateNotFoundError
+            raise RateNotFoundError('{0} has no rate for {1}'.format(currency, date))
+        # if the fallback_rate is found in self._rates 
+        # then return that rate 
+        return rate 
+
+    def convert(self, amount, currency, new_currency='EUR', date=None):
+        """
+        Convert amount from a currency to another one.
+
+        :param float amount: The amount of `currency` to convert. 
+        :param str currency: The currency to convert from.
+        :param str new_currency: The currency to convert to.    
+        :param datetime.date date: Use the conversion rate of this date. If this 
+            is not given, the most recent rate is used.
+        :return: The value of `amount` in `new_currency`
+        :retype: float 
+
+        >>> from datetime import date 
+        >>> c = CurrencyConverter()
+        >>> c.convert(100, 'EUR', 'USD', date=date(2014, 3, 28))
+        137.5...
+        >>> c.convert(100, 'USD', date=date(2010, 11, 21))
+        72.67...
+        >>> c.convert(100, 'BGN', date=date(2010, 11, 21))
+        Traceback (most recent call last):
+        RateNotFoundError: BGN has no rate for 2010-11-21
+        """
+        for c in currency, new_currency: 
+            if c not in self.currencies:
+                # if either currency or new_currency is not in self.currencies  
+                # then throw ValueError
+                raise ValueError('{0} is not a supported currency'.format(c))
+        
+        if date is None: 
+            # if date is null 
+            # then get the latest date in self.bounds 
+            date = self.bounds[currency].last_date 
+        else:
+            try:
+                # date is of type datetime so we use date.date() to 
+                # get the date in string form 
+                date = date.date() # fallback if input was a datetime object 
+            except AttributeError:
+                pass 
+
+        # getting the currency rate for that specific date 
+        # for both input and output currencies 
+        # self._get_rate will throw RateNotFoundError if a rate was not found for that specific date
+        r0 = self._get_rate(currency, date)
+        r1 = self._get_rate(new_currency, date)
+        # the formula for currency conversion is:
+        # = ((amount) / (rate #1 * rate #2))
+        return self.cast(amount) / r0 * r1 
 
 class S3CurrencyConverter(CurrencyConverter):
     """
