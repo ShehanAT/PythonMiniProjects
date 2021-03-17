@@ -4,7 +4,7 @@ from pygame.math import Vector2
 from pygame.locals import *  
 
 
-HEIGHT = 800 
+HEIGHT = 400 
 WIDTH = 600
 BACKGROUND = (0, 0, 0)
 FALL_SPEED = 5
@@ -56,22 +56,32 @@ def main():
 class Square(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((10, 10))
+        sizeX = random.randrange(1, 20, 5)
+        sizeY = random.randrange(1, 20)
+        self.image = pygame.Surface((sizeX, sizeY))
         self.image.fill(RED)
         self.rect = self.image.get_rect()
-        self.rect.center = (250, 0)
-        self.speed = 5 
+        self.rect.center = (HEIGHT/2, 0)
+        self.speed = 10 
         self.atBottom = False 
 
     def control(self, speed):
-        self.rect.x += speed 
-        
+        # if statements prevent square from going off screen in x-axis
+        if self.rect.x <= 5 and speed < 0: 
+            return 
+        if self.rect.x >= (HEIGHT - 15) and speed > 0:
+            return 
+        else:
+            self.rect.x += speed 
 
     def update(self):
         self.rect.y += self.speed   
-        if self.rect.y > 580:
+        if self.rect.y > (WIDTH - 20):
             self.speed = 0
             self.atBottom = True 
+      
+        # set bounds for left and right edges of screen 
+
 
 
 
