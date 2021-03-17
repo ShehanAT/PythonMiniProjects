@@ -31,16 +31,22 @@ def main():
     running = True
     square = Square()
     all_sprites.add(square) 
-    
+    counter = 0
     while running:
         clock.tick(30)
+        
         for event in pygame.event.get():
             if pygame.event == pygame.K_ESCAPE:
+                running = False 
                 sys.exit(0)
-            if pygame.key.get_pressed()[K_LEFT]:
-                square.control(-SPEED, 0)
-            if pygame.key.get_pressed()[K_RIGHT]:
-                square.control(SPEED, 0)
+            if pygame.event == pygame.KEYDOWN:
+                print(pygame.key.name(event.key))
+        keys = pygame.key.get_pressed()
+        # this enables continous movement 
+        square.control((keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * SPEED)
+        if square.atBottom == True:
+            square = Square()
+            all_sprites.add(square)
         window.fill((20, 40, 70))
         all_sprites.update() # runs Square's update()
         all_sprites.draw(window)
@@ -53,18 +59,20 @@ class Square(pygame.sprite.Sprite):
         self.image = pygame.Surface((10, 10))
         self.image.fill(RED)
         self.rect = self.image.get_rect()
-        self.rect.center = (250, 250)
+        self.rect.center = (250, 0)
         self.speed = 5 
+        self.atBottom = False 
 
-    def control(self, moveX, moveY):
-        self.rect.x += moveX
-        self.rect.y += moveY 
+    def control(self, speed):
+        self.rect.x += speed 
         
 
     def update(self):
         self.rect.y += self.speed   
-        if self.rect.y > 600:
-            self.rect.y = 0   
+        if self.rect.y > 580:
+            self.speed = 0
+            self.atBottom = True 
+
 
 
 # run the main function only if thi smodule is executed as the main script 
