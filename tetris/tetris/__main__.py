@@ -4,83 +4,137 @@ from pygame.math import Vector2
 from pygame.locals import *  
 
 
-HEIGHT = 400 
-WIDTH = 600
-BACKGROUND = (0, 0, 0)
-FALL_SPEED = 5
-GRAVITY = 0.2 # variable that represents gravity 
-SPEED = 5
-# colors 
+
+colors = [
+    (255, 0, 0), 
+    (0, 255, 0), 
+    (0, 0, 255), 
+    (255, 255, 0), 
+    (0, 255, 255), 
+    (255, 0, 255), 
+    (255,140,0)
+]
+
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 CYAN = (0, 255, 255)
 MAGENTA = (255, 0, 255)
+WHITE = (255, 255, 255)
+GREY = (128, 128, 128)
 
-window = pygame.display.set_mode((HEIGHT, WIDTH))
-update_rect = pygame.Rect(HEIGHT/2, WIDTH/2, 500, 400)
-def main():
-    pygame.init()
-    window_rect = window.get_rect()
-    window.fill((20, 40, 70))
-    clock = pygame.time.Clock()
-    pygame.display.update() 
-    all_sprites = pygame.sprite.Group()
-
-    running = True
-    square = Square()
-    all_sprites.add(square) 
-    counter = 0
-    while running:
-        clock.tick(30)
-        
-        for event in pygame.event.get():
-            if pygame.event == pygame.K_ESCAPE:
-                running = False 
-                sys.exit(0)
-            if pygame.event == pygame.KEYDOWN:
-                print(pygame.key.name(event.key))
-        keys = pygame.key.get_pressed()
-        # this enables continous movement 
-        square.control((keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * SPEED)
-        if square.atBottom == True:
-            square = Square()
-            all_sprites.add(square)
-        window.fill((20, 40, 70))
-        all_sprites.update() # runs Square's update()
-        all_sprites.draw(window)
-        pygame.display.flip()
+'''
+Tetris rules: you can only move the pieces in specific ways.
+Game is over if your pieces reach the top of the screen
+You can only remove tiles from the screen by filling all the blank space in a line.(Tile color does not matter)
+Each time you clear a line, points are awarded 
 
 
-class Square(pygame.sprite.Sprite):
-    def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
-        sizeX = random.randrange(10, 50, 10)
-        sizeY = random.randrange(10, 20)
-        self.image = pygame.Surface((sizeX, sizeY))
-        self.image.fill(RED)
-        self.rect = self.image.get_rect()
-        self.rect.center = (HEIGHT/2, 0)
-        self.speed = 10 
-        self.atBottom = False 
+'''
+class Tetris:
+    level = 2 
+    score = 0 
+    state = "start"
+    field = [] # used to tell which tiles are empty vs ones that contain figures, does not include figure currently falling down 
+    HEIGHT = 0
+    WIDTH = 0 
+    startX = 100
+    startY = 60 
+    zoom = 20 
+    figure = None 
 
-    def control(self, speed):
-        # if statements prevent square from going off screen in x-axis
-        if self.rect.x <= 5 and speed < 0: 
-            return 
-        if self.rect.x >= (HEIGHT - 15) and speed > 0:
-            return 
-        else:
-            self.rect.x += speed 
+    def __init__(self, height, width):
+        self.height = height 
+        self.width = width 
+        # for creating a empty field[]
+        for i in range(height):
+            new_line = []
+            for j in range(width):
+                new_line.append(0)
+            self.field.append(new_line)
 
-    def update(self):
-        self.rect.y += self.speed   
-        if self.rect.y > (WIDTH - 20):
-            self.speed = 0
-            self.atBottom = True 
-      
-        # set bounds for left and right edges of screen 
+    def create_figure(self):
+        self.figure = Figure(self.startX, self.startY)
+
+    # checking each cell in the 4x4 matrix that contains the current figure 
+    # to see whether current figure is out of bounds of game screen 
+    # or colliding with a fixed figure, returns False for no collisions and no out of bounds instances  
+    def intersects(self):
+        intersects = False 
+        for i in range(4):
+            for j in range(4):
+                if (i * 4) + j in self.figure.get_image(): # making sure tiles containing figure are not 0
+                    if (i + self.figure.y) > (self.height - 1) or \
+                        (j + self.figure.x) > (self.width - 1) or \
+                        (j + self.figure.x) < 0 or \
+                        self.field[i + self.figure.y][j + self.figure.x] > 0:
+                        intersects = True 
+        return intersects 
+
+    def freeze_figure(self):
+        for i in range(4):
+            for j in range(4):
+                # identifies tiles containing figure vs empty tiles in the 4x4 matrix
+                if (i * 4 ) + j in self.figure.get_image():
+                    # give non zero values to all tiles containing the figure
+                    self.figure[i + self.figure.y][j + self.figure.x] = self.color 
+        # after freezing, check if any rows are full so that we can remove that row        
+        self.break_lines()
+        # then create new figure
+        self.create_figure()
+        if self.intersects():
+            # if right after creating new figure, it intersects with something 
+            # then there is a column of fixed figures reaching the top of the screen thereby ending the game
+            self.state = "gameover"      
+
+    def break_lines(self):
+        lines = 0 
+        for i in range(1, self.height):
+            zeros = 0 
+            for j in range(0, self.width):
+                if self.field[i][j] == 0:
+                    zeros += 1
+                
+            if zeros == 0:
+                for i1 in range(i, 1, -1):
+                    for j in range(self.width):
+                        # since height index in self.field is in descending order this code assigns the higher row to the lower row 
+                        self.field[i1][j] = self.field[i1 - 1][j]
+        self.score += lines ** 2 # add to score, if multiple lines are cleared at the same time exponentialize the score
+    
+    # makes the figure fall down indefinitely until it gets into a collision
+    def go_space(self):
+        while not self.intersects():
+            self.figure.y += 1
+        self.figure.y -= 1 # take back 1 tile to prevent current figure from touching fixed figures/screen bounds
+        self.freeze_figure()
+
+    # similar to go_space() but only goes down 1 tile when executed
+    def go_down(self):
+        self.figure.y += 1
+        if self.intersects():
+            self.figure.y -= 1
+            self.freeze_figure()
+
+    def go_sideways(self, dx):
+        # what is dx?
+        previous_x = self.figure.x 
+        self.figure.x += dx  
+        if self.intersects():
+            # if the new figure position intersects with something else 
+            # then revert back to the previously saved position
+            self.figure.x = previous_x  
+
+    def rotate(self):
+        previous_rotation = self.figure.rotation
+        self.figure.rotate()
+        if self.intersects():
+            # if there is a collision during new rotation
+            # then revert to previous rotation 
+            self.figure.rotation = previous_rotation 
+           
+
 
 class Figure:
     '''
@@ -103,15 +157,8 @@ class Figure:
         [[1, 2, 4, 5], [0, 4, 5, 9], [5, 6, 8, 9], [1, 5, 6, 10]], # for left side zig-zag shaped tetromino 
         [[1, 2, 6, 7], [3, 6, 7, 10], [5, 6, 10, 11], [2, 5, 6, 9]] # for right side zig-zag shaped tetromino 
     ]
-    '''
-    RED = (255, 0, 0)
-    GREEN = (0, 255, 0)
-    BLUE = (0, 0, 255)
-    YELLOW = (255, 255, 0)
-    CYAN = (0, 255, 255)
-    MAGENTA = (255, 0, 255)
-    '''
-    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255), (255,140,0)]
+  
+    
 
     def __init__(self, x, y):
         self.x = x 
@@ -120,11 +167,72 @@ class Figure:
         self.colors = random.randint(0, (len(self.colors) - 1))
         self.rotation = 0 
 
-    # function to get the specific shape and color of currently falling object 
+    # gets the specific shape and color of currently falling object 
     def get_image(self):
         return self.figures[self.type][self.colors]
 
-    
+    # increments to the next rotation of any type of figure
+    def rotate(self):
+        self.rotation = (self.rotation + 1) % (len(self.figures[self.type])) 
+
+def main():
+    screen_height = 400 
+    screen_width = 500
+    game_height = 20 
+    game_width = 10 
+    pressing_down = False 
+    gameover = False 
+    counter = 0 
+    fps = 30 
+
+    window = pygame.display.set_mode(screen_height, screen_width)
+    clock = pygame.time.Clock()
+    game = Tetris(game_height, game_width)
+
+    while not gameover:
+        if game.figure is None:
+            game.create_figure
+        counter += 1 
+        if counter > 100000:
+            counter = 0 
+
+        if counter % (fps // game.level // 2) == 0 or pressing_down:
+            if game.state == "start":
+                game.go_down()
+        
+        for event in pygame.event.get():
+            if event.key == pygame.QUIT:
+                gameover = True 
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RIGHT:
+                    game.rotate()
+                if event.key == pygame.K_LEFT:
+                    game.rotate()
+                if event.key == pygame.K_UP:
+                    game.rotate()
+                if event.key == pygame.K_DOWN:
+                    pressing_down = True 
+                if event.key == pygame.K_SPACE:
+                    game.go_space()
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_DOWN:
+                pressing_down = False 
+        
+        # window.fill(WHITE)
+
+        # this is used to draw grey grid outline on window 
+        for i in range(game.height):
+            for j in range(game.width):
+                pygame.draw.rect(window, GREY, [game.startX + game.zoom * j, game.startY + game.zoom * i, game.zoom], 1)
+            
+        pygame.display.flip()
+
+
+ 
+   
 # run the main function only if thi smodule is executed as the main script 
 # (if you import this as a module then nothing is executed)
 if __name__ == "__main__":
