@@ -1,8 +1,6 @@
 import pygame, sys, os, random 
 from time import sleep 
-from pygame.math import Vector2
 from pygame.locals import *  
-
 
 
 colors = [
@@ -23,7 +21,7 @@ CYAN = (0, 255, 255)
 MAGENTA = (255, 0, 255)
 WHITE = (255, 255, 255)
 GREY = (128, 128, 128)
-
+BLACK = (0, 0, 0)
 '''
 Tetris rules: you can only move the pieces in specific ways.
 Game is over if your pieces reach the top of the screen
@@ -39,8 +37,8 @@ class Tetris:
     field = [] # used to tell which tiles are empty vs ones that contain figures, does not include figure currently falling down 
     HEIGHT = 0
     WIDTH = 0 
-    startX = 100
-    startY = 60 
+    startX = 100 
+    startY = 50
     zoom = 20 
     figure = None 
 
@@ -55,7 +53,7 @@ class Tetris:
             self.field.append(new_line)
 
     def create_figure(self):
-        self.figure = Figure(self.startX, self.startY)
+        self.figure = Figure(3, 0)
 
     # checking each cell in the 4x4 matrix that contains the current figure 
     # to see whether current figure is out of bounds of game screen 
@@ -76,9 +74,9 @@ class Tetris:
         for i in range(4):
             for j in range(4):
                 # identifies tiles containing figure vs empty tiles in the 4x4 matrix
-                if (i * 4 ) + j in self.figure.get_image():
+                if i * 4 + j in self.figure.get_image():
                     # give non zero values to all tiles containing the figure
-                    self.figure[i + self.figure.y][j + self.figure.x] = self.color 
+                    self.field[i + self.figure.y][j + self.figure.x] = self.figure.color 
         # after freezing, check if any rows are full so that we can remove that row        
         self.break_lines()
         # then create new figure
@@ -164,18 +162,19 @@ class Figure:
         self.x = x 
         self.y = y 
         self.type = random.randint(0, (len(self.figures) - 1))
-        self.colors = random.randint(0, (len(self.colors) - 1))
+        self.color = random.randint(0, (len(colors) - 1))
         self.rotation = 0 
 
     # gets the specific shape and color of currently falling object 
     def get_image(self):
-        return self.figures[self.type][self.colors]
+        return self.figures[self.type][self.rotation]
 
     # increments to the next rotation of any type of figure
     def rotate(self):
         self.rotation = (self.rotation + 1) % (len(self.figures[self.type])) 
 
 def main():
+    pygame.init()
     screen_height = 400 
     screen_width = 500
     game_height = 20 
@@ -185,13 +184,13 @@ def main():
     counter = 0 
     fps = 30 
 
-    window = pygame.display.set_mode(screen_height, screen_width)
+    window = pygame.display.set_mode((screen_height, screen_width))
     clock = pygame.time.Clock()
     game = Tetris(game_height, game_width)
 
     while not gameover:
         if game.figure is None:
-            game.create_figure
+            game.create_figure()
         counter += 1 
         if counter > 100000:
             counter = 0 
@@ -201,13 +200,14 @@ def main():
                 game.go_down()
         
         for event in pygame.event.get():
-            if event.key == pygame.QUIT:
-                gameover = True 
+            if event.type == pygame.QUIT:
+                gameover = True
+                pygame.quit()       
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RIGHT:
-                    game.rotate()
+                    game.go_sideways(1)
                 if event.key == pygame.K_LEFT:
-                    game.rotate()
+                    game.go_sideways(-1)
                 if event.key == pygame.K_UP:
                     game.rotate()
                 if event.key == pygame.K_DOWN:
@@ -216,20 +216,48 @@ def main():
                     game.go_space()
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
+                    sys.exit(0)
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_DOWN:
                 pressing_down = False 
         
-        # window.fill(WHITE)
+        window.fill(WHITE)
 
-        # this is used to draw grey grid outline on window 
+        # this is used to draw grey grid on window 
         for i in range(game.height):
             for j in range(game.width):
-                pygame.draw.rect(window, GREY, [game.startX + game.zoom * j, game.startY + game.zoom * i, game.zoom], 1)
-            
-        pygame.display.flip()
+                pygame.draw.rect(window, GREY, [game.startX + game.zoom * j, game.startY + game.zoom * i, game.zoom, game.zoom], 1) # last arg is for line thickness
+                if game.field[i][j] > 0:
+                    pygame.draw.rect(window, colors[game.field[i][j]], 
+                        [game.startX * game.zoom + 1, game.startY * game.zoom + 1, game.zoom - 2, game.zoom - 1])
+        
+        # this is used to draw current figure on a 4x4 matrix in game grid
+        if game.figure is not None:
+            for i in range(4):
+                for j in range(4):
+                    p = i * 4 + j
+                    if p in game.figure.get_image():
+                        pygame.draw.rect(window, colors[game.figure.color],
+                                        [
+                                            game.startX + game.zoom * (j + game.figure.x) + 1,
+                                            game.startY + game.zoom * (i + game.figure.y) + 1,
+                                            game.zoom -2, 
+                                            game.zoom - 2
+                                        ])
 
+        font2 = pygame.font.SysFont('Consolas', 11, bold=True)
+        font1 = pygame.font.SysFont('Comic Sans MS', 11, bold=True)
+        text_score = font1.render("Score: " + str(game.score), True, BLACK)
+        text_game_over1 = font1.render("Game Over", True, BLACK)
+        text_game_over2 = font1.render("Press ESC", True, BLACK)
+        
+        window.blit(text_score, [100, 20]) # second arg is represents dest where [top, left]
+        if game.state == "gameover":
+            window.blit(text_game_over1, [20, 220])
+            window.blit(text_game_over2, [20, 275])
+        pygame.display.flip()
+        clock.tick(fps) # paces the game to a slower fall speed 
 
  
    
@@ -239,4 +267,3 @@ if __name__ == "__main__":
     # call the main function 
     main()
 
-      
