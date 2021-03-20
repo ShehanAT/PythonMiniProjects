@@ -164,7 +164,7 @@ class Figure:
         self.x = x 
         self.y = y 
         self.type = random.randint(0, (len(self.figures) - 1))
-        self.color = random.randint(0, (len(colors) - 1))
+        self.color = random.randint(1, (len(colors) - 1))
         self.rotation = 0 
 
     # gets the specific shape and color of currently falling object 
