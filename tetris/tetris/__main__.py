@@ -230,7 +230,7 @@ def main():
                 pygame.draw.rect(window, GREY, [game.startX + game.zoom * j, game.startY + game.zoom * i, game.zoom, game.zoom], 1) # last arg is for line thickness
                 if game.field[i][j] > 0:
                     pygame.draw.rect(window, colors[game.field[i][j]], 
-                        [game.startX * game.zoom + 1, game.startY * game.zoom + 1, game.zoom - 2, game.zoom - 1])
+                        [game.startX + game.zoom * j, game.startY + game.zoom * i, game.zoom - 2, game.zoom - 1])
         
         # this is used to draw current figure on a 4x4 matrix in game grid
         if game.figure is not None:
