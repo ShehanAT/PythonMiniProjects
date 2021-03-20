@@ -95,10 +95,12 @@ class Tetris:
                     zeros += 1
                 
             if zeros == 0:
+                lines += 1
                 for i1 in range(i, 1, -1):
                     for j in range(self.width):
                         # since height index in self.field is in descending order this code assigns the higher row to the lower row 
                         self.field[i1][j] = self.field[i1 - 1][j]
+                        
         self.score += lines ** 2 # add to score, if multiple lines are cleared at the same time exponentialize the score
     
     # makes the figure fall down indefinitely until it gets into a collision

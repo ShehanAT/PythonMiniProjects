@@ -183,25 +183,24 @@ while not done:
                 pressing_down = False
 
     screen.fill(WHITE)
-    
+
     for i in range(game.height):
         for j in range(game.width):
             pygame.draw.rect(screen, GRAY, [game.x + game.zoom * j, game.y + game.zoom * i, game.zoom, game.zoom], 1)
             if game.field[i][j] > 0:
                 pygame.draw.rect(screen, colors[game.field[i][j]],
                                  [game.x + game.zoom * j + 1, game.y + game.zoom * i + 1, game.zoom - 2, game.zoom - 1])
-  
+
     if game.figure is not None:
         for i in range(4):
             for j in range(4):
                 p = i * 4 + j
                 if p in game.figure.image():
                     pygame.draw.rect(screen, colors[game.figure.color],
-                                        [game.x + game.zoom * (j + game.figure.x) + 1,
-                                        game.y + game.zoom * (i + game.figure.y) + 1,
-                                        game.zoom - 2, game.zoom - 2])
+                                     [game.x + game.zoom * (j + game.figure.x) + 1,
+                                      game.y + game.zoom * (i + game.figure.y) + 1,
+                                      game.zoom - 2, game.zoom - 2])
 
-    '''
     font = pygame.font.SysFont('Calibri', 25, True, False)
     font1 = pygame.font.SysFont('Calibri', 65, True, False)
     text = font.render("Score: " + str(game.score), True, BLACK)
@@ -212,6 +211,8 @@ while not done:
     if game.state == "gameover":
         screen.blit(text_game_over, [20, 200])
         screen.blit(text_game_over1, [25, 265])
-    '''
+
     pygame.display.flip()
     clock.tick(fps)
+
+pygame.quit()
