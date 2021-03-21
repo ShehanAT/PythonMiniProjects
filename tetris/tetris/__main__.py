@@ -4,13 +4,13 @@ from pygame.locals import *
 
 
 colors = [
-    (255, 0, 0), 
-    (0, 255, 0), 
-    (0, 0, 255), 
-    (255, 255, 0), 
-    (0, 255, 255), 
-    (255, 0, 255), 
-    (255,140,0)
+    (37, 235, 11), 
+    (160, 154, 143), 
+    (139, 176, 186), 
+    (57, 217, 227), 
+    (82, 30, 24),
+    (13, 216, 46),
+    (198, 39, 57)
 ]
 
 RED = (255, 0, 0)
@@ -118,7 +118,7 @@ class Tetris:
             self.freeze_figure()
 
     def go_sideways(self, dx):
-        # what is dx?
+        # dx is the direction to go sideways, 1 for right, -1 for left
         previous_x = self.figure.x 
         self.figure.x += dx  
         if self.intersects():
