@@ -242,9 +242,6 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit(0)
-                if event.key == pygame.K_r:
-                    print("Reseting game")
-                    main()
 
         if event.type == pygame.KEYUP: # event is saved in memory so we can access event outside the for loop 
             if event.key == pygame.K_DOWN:
