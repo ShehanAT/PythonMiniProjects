@@ -22,6 +22,9 @@ MAGENTA = (255, 0, 255)
 WHITE = (255, 255, 255)
 GREY = (128, 128, 128)
 BLACK = (0, 0, 0)
+
+level = 1
+lines_to_clear = 1
 '''
 Tetris rules: you can only move the pieces in specific ways.
 Game is over if your pieces reach the top of the screen
@@ -31,7 +34,8 @@ Each time you clear a line, points are awarded
 
 '''
 class Tetris:
-    level = 2 
+    # level = 1
+    lines_cleared = 0
     score = 0 
     state = "start"
     field = [] # used to tell which tiles are empty vs ones that contain figures, does not include figure currently falling down 
@@ -43,8 +47,10 @@ class Tetris:
     figure = None 
 
     def __init__(self, height, width):
+        self.field = [] # to reset field if needed 
+        self.figure = None 
         self.height = height 
-        self.width = width 
+        self.width = width
         # for creating a empty field[]
         for i in range(height):
             new_line = []
@@ -102,7 +108,23 @@ class Tetris:
                         self.field[i1][j] = self.field[i1 - 1][j]
                         
         self.score += lines ** 2 # add to score, if multiple lines are cleared at the same time exponentialize the score
-    
+        self.lines_cleared += lines 
+        self.check_level_up()
+
+    def check_level_up(self):
+        global level 
+        global lines_to_clear 
+        if self.lines_cleared >= level: # if number of lines cleared >= game level then level up 
+            level += 1
+            lines_to_clear = level 
+            self.lines_cleared = 0 
+            return True 
+        else:
+            # if not ready to level up yet 
+            # then calculate remaining number of 
+            # lines to clear in order to level up
+            lines_to_clear = level - self.lines_cleared 
+            return False 
     # makes the figure fall down indefinitely until it gets into a collision
     def go_space(self):
         while not self.intersects():
@@ -133,8 +155,6 @@ class Tetris:
             # if there is a collision during new rotation
             # then revert to previous rotation 
             self.figure.rotation = previous_rotation 
-           
-
 
 class Figure:
     '''
@@ -176,16 +196,19 @@ class Figure:
         self.rotation = (self.rotation + 1) % (len(self.figures[self.type])) 
 
 def main():
-    pygame.init()
+    global level 
+    global lines_to_clear 
     screen_height = 400 
     screen_width = 500
     game_height = 20 
     game_width = 10 
     pressing_down = False 
     gameover = False 
+    reset = False 
     counter = 0 
     fps = 30 
 
+    pygame.init()
     window = pygame.display.set_mode((screen_height, screen_width))
     clock = pygame.time.Clock()
     game = Tetris(game_height, game_width)
@@ -197,7 +220,7 @@ def main():
         if counter > 100000:
             counter = 0 
 
-        if counter % (fps // game.level // 2) == 0 or pressing_down:
+        if counter % (fps // level // 2) == 0 or pressing_down:
             if game.state == "start":
                 game.go_down()
         
@@ -219,8 +242,11 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit(0)
+                if event.key == pygame.K_r:
+                    print("Reseting game")
+                    main()
 
-        if event.type == pygame.KEYUP:
+        if event.type == pygame.KEYUP: # event is saved in memory so we can access event outside the for loop 
             if event.key == pygame.K_DOWN:
                 pressing_down = False 
         
@@ -251,10 +277,16 @@ def main():
         font2 = pygame.font.SysFont('Consolas', 11, bold=True)
         font1 = pygame.font.SysFont('Comic Sans MS', 11, bold=True)
         text_score = font1.render("Score: " + str(game.score), True, BLACK)
+        text_level = font1.render("Level: " + str(level), True, BLACK)
+        text_lines_to_clear = font1.render("Lines to clear: " + str(lines_to_clear), True, BLACK)
         text_game_over1 = font1.render("Game Over", True, BLACK)
         text_game_over2 = font1.render("Press ESC", True, BLACK)
         
         window.blit(text_score, [100, 20]) # second arg is represents dest where [top, left]
+        window.blit(text_lines_to_clear, [250, 20])
+        window.blit(text_level, [250, 5])
+        if game.check_level_up():
+            main()
         if game.state == "gameover":
             window.blit(text_game_over1, [20, 220])
             window.blit(text_game_over2, [20, 275])
