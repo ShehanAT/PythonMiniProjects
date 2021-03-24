@@ -13,12 +13,6 @@ colors = [
     (198, 39, 57)
 ]
 
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-YELLOW = (255, 255, 0)
-CYAN = (0, 255, 255)
-MAGENTA = (255, 0, 255)
 WHITE = (255, 255, 255)
 GREY = (128, 128, 128)
 BLACK = (0, 0, 0)
@@ -30,8 +24,6 @@ Tetris rules: you can only move the pieces in specific ways.
 Game is over if your pieces reach the top of the screen
 You can only remove tiles from the screen by filling all the blank space in a line.(Tile color does not matter)
 Each time you clear a line, points are awarded 
-
-
 '''
 class Tetris:
     # level = 1
@@ -204,7 +196,6 @@ def main():
     game_width = 10 
     pressing_down = False 
     gameover = False 
-    reset = False 
     counter = 0 
     fps = 30 
 
