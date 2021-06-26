@@ -1,8 +1,10 @@
 import random
 
 import pygame
+import pygame_menu 
 import random
 import sys 
+from typing import Tuple, Any 
 
 pygame.init()
  
@@ -23,13 +25,25 @@ clock = pygame.time.Clock()
 
 
 
+
 def setup_snake_food(food_position):
     new_food_position = [random.randrange(1, (display_width//10))* 10, random.randrange(1, (display_height//10)) * 10]
     return new_food_position
+def set_game_difficulty(selected: Tuple, value: Any):
+    print("Set Difficulty to {} ({})".format(selected[0], value))
 
-def end_game():
+
+
+def show_game_score(font, size, game_score):
+    game_score_font = pygame.font.SysFont(font, size);
+    game_score_surface = game_score_font.render("Game Score: " + str(game_score), True, white)
+    game_score_rect = game_score_surface.get_rect()
+    game_score_rect.midtop = (display_height/5, 15)
+    win.blit(game_score_surface, game_score_rect)
+
+def show_game_end():
     pygame.quit();
-    sys.exit()
+    sys.exit() 
 
 def game_loop():
     difficulty = 25;
@@ -110,14 +124,30 @@ def game_loop():
     
         # if snake head hits the edge of the screen then end game
         if snake_position[0] < 0 or snake_position[0] > (display_width - snake_width/2):
-            end_game();
+            show_game_end();
         if snake_position[1] < 0 or snake_position[1] > (display_height - snake_height/2):
-            end_game();            
+            show_game_end();            
 
+        show_game_score('consolas', 20, game_score)
         pygame.display.update();
 
         clock.tick(difficulty);
 
-game_loop();
+def setup_start_screen():
+    return pygame_menu.Menu(width=display_width, height=display_height, title='Welcome to Snake Game!', theme=pygame_menu.themes.THEME_BLUE);
+
+start_menu = setup_start_screen()
+def show_start_screen(start_menu):
+    start_menu.add.text_input("Your Name: ", default='Guest');
+    start_menu.add.selector("Difficulty: ", [("Easy", 1), ("Medium", 2), ("Hard", 3)], onchange=set_game_difficulty);
+    start_menu.add.button("Play", game_loop);
+    start_menu.add.button("Quit", pygame_menu.events.EXIT);
+    start_menu.mainloop(win)
+
+show_start_screen(start_menu)
+
+# show_start_screen();
+
+# game_loop();
 pygame.quit();
 quit();
