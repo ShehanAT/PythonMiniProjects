@@ -3,12 +3,14 @@ import random
 import pygame
 import pygame_menu 
 import random
+import sys
 from typing import Tuple, Any 
+from math import isclose
 
 pygame.init()
  
-display_width = 800
-display_height = 600
+display_width = 600
+display_height = 400
  
 black = (0,0,0)
 white = (255,255,255)
@@ -68,6 +70,7 @@ def game_loop():
         
         if keys[pygame.K_ESCAPE]:
             pygame.quit()
+            sys.exit()
             break
         if keys[pygame.K_LEFT]:
             new_direction = "LEFT";
@@ -98,7 +101,7 @@ def game_loop():
             snake_position[0] += snake_speed;
 
         snake_body.insert(0, list(snake_position));
-        if snake_position[0] == food_position[0] and snake_position[1] == food_position[1]:
+        if isclose(snake_position[0], food_position[0], abs_tol=5) and isclose(snake_position[1], food_position[1], abs_tol=5):
             game_score += 10;
             show_food = False;
         else:
