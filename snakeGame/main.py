@@ -45,6 +45,22 @@ def show_game_end():
     pygame.quit();
     sys.exit() 
 
+
+end_menu = pygame_menu.Menu(width=display_width, height=display_height, title='Game Over', theme=pygame_menu.themes.THEME_BLUE);
+
+def reset_end_menu():
+    end_menu = pygame_menu.Menu(width=display_width, height=display_height, title='Game Over', theme=pygame_menu.themes.THEME_BLUE);
+
+# end_menu = setup_end_screen()
+
+def show_end_screen(game_score):
+    # reset_end_menu()
+    end_menu = pygame_menu.Menu(width=display_width, height=display_height, title='Game Over', theme=pygame_menu.themes.THEME_BLUE);
+    end_menu.add.label("Your Score:" + str(game_score));
+    end_menu.add.button("Replay Game", replay_game);
+    end_menu.add.button("Quit Game", pygame_menu.events.EXIT);
+    end_menu.mainloop(win)
+
 def game_loop():
     difficulty = 25;
     x = display_width/2
@@ -102,7 +118,6 @@ def game_loop():
 
         snake_body.insert(0, list(snake_position));
         if snake_position[0] == food_position[0] and snake_position[1] == food_position[1]:
-            print("snake ate food!");
             game_score += 10;
             show_food = False;
         else:
@@ -124,19 +139,28 @@ def game_loop():
     
         # if snake head hits the edge of the screen then end game
         if snake_position[0] < 0 or snake_position[0] > (display_width - snake_width/2):
-            show_game_end();
+            show_end_screen(game_score);
         if snake_position[1] < 0 or snake_position[1] > (display_height - snake_height/2):
-            show_game_end();            
+            show_end_screen(game_score);            
 
         show_game_score('consolas', 20, game_score)
         pygame.display.update();
 
         clock.tick(difficulty);
 
+def reset_variables():
+    pass 
+
+def replay_game(): 
+    reset_variables()
+    game_loop()
+    pass 
 def setup_start_screen():
     return pygame_menu.Menu(width=display_width, height=display_height, title='Welcome to Snake Game!', theme=pygame_menu.themes.THEME_BLUE);
 
+
 start_menu = setup_start_screen()
+
 def show_start_screen(start_menu):
     start_menu.add.text_input("Your Name: ", default='Guest');
     start_menu.add.selector("Difficulty: ", [("Easy", 1), ("Medium", 2), ("Hard", 3)], onchange=set_game_difficulty);
@@ -144,10 +168,9 @@ def show_start_screen(start_menu):
     start_menu.add.button("Quit", pygame_menu.events.EXIT);
     start_menu.mainloop(win)
 
+
+
 show_start_screen(start_menu)
 
-# show_start_screen();
-
-# game_loop();
 pygame.quit();
 quit();
