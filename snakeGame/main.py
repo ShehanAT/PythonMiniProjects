@@ -3,7 +3,6 @@ import random
 import pygame
 import pygame_menu 
 import random
-import sys 
 from typing import Tuple, Any 
 
 pygame.init()
@@ -14,25 +13,18 @@ display_height = 600
 black = (0,0,0)
 white = (255,255,255)
 red = (255,0,0)
- 
-block_color = (53,115,255)
- 
-car_width = 73
- 
+  
+difficulty = 25;
 win = pygame.display.set_mode((display_width,display_height))
 pygame.display.set_caption('Snake Game by Shehan Atukorala')
 clock = pygame.time.Clock()
 
-
-
-
 def setup_snake_food(food_position):
     new_food_position = [random.randrange(1, (display_width//10))* 10, random.randrange(1, (display_height//10)) * 10]
     return new_food_position
+
 def set_game_difficulty(selected: Tuple, value: Any):
     print("Set Difficulty to {} ({})".format(selected[0], value))
-
-
 
 def show_game_score(font, size, game_score):
     game_score_font = pygame.font.SysFont(font, size);
@@ -41,20 +33,9 @@ def show_game_score(font, size, game_score):
     game_score_rect.midtop = (display_height/5, 15)
     win.blit(game_score_surface, game_score_rect)
 
-def show_game_end():
-    pygame.quit();
-    sys.exit() 
-
-
 end_menu = pygame_menu.Menu(width=display_width, height=display_height, title='Game Over', theme=pygame_menu.themes.THEME_BLUE);
 
-def reset_end_menu():
-    end_menu = pygame_menu.Menu(width=display_width, height=display_height, title='Game Over', theme=pygame_menu.themes.THEME_BLUE);
-
-# end_menu = setup_end_screen()
-
 def show_end_screen(game_score):
-    # reset_end_menu()
     end_menu = pygame_menu.Menu(width=display_width, height=display_height, title='Game Over', theme=pygame_menu.themes.THEME_BLUE);
     end_menu.add.label("Your Score:" + str(game_score));
     end_menu.add.button("Replay Game", replay_game);
@@ -62,7 +43,7 @@ def show_end_screen(game_score):
     end_menu.mainloop(win)
 
 def game_loop():
-    difficulty = 25;
+    
     x = display_width/2
     y = display_height/2
     snake_position = [display_width/2, display_height/2]
@@ -148,20 +129,11 @@ def game_loop():
 
         clock.tick(difficulty);
 
-def reset_variables():
-    pass 
-
 def replay_game(): 
-    reset_variables()
     game_loop()
-    pass 
-def setup_start_screen():
-    return pygame_menu.Menu(width=display_width, height=display_height, title='Welcome to Snake Game!', theme=pygame_menu.themes.THEME_BLUE);
 
-
-start_menu = setup_start_screen()
-
-def show_start_screen(start_menu):
+def show_start_screen():
+    start_menu = pygame_menu.Menu(width=display_width, height=display_height, title='Welcome to Snake Game!', theme=pygame_menu.themes.THEME_BLUE);
     start_menu.add.text_input("Your Name: ", default='Guest');
     start_menu.add.selector("Difficulty: ", [("Easy", 1), ("Medium", 2), ("Hard", 3)], onchange=set_game_difficulty);
     start_menu.add.button("Play", game_loop);
@@ -169,8 +141,4 @@ def show_start_screen(start_menu):
     start_menu.mainloop(win)
 
 
-
-show_start_screen(start_menu)
-
-pygame.quit();
-quit();
+show_start_screen()
