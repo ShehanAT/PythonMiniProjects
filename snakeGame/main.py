@@ -1,5 +1,3 @@
-import random
-
 import pygame
 import pygame_menu 
 import random
@@ -15,27 +13,77 @@ display_height = 400
 black = (0,0,0)
 white = (255,255,255)
 red = (255,0,0)
-  
+
+
+'''
+Game difficulty is assigned the following values:
+* Easy = 25
+* Medium = 50
+* Hard = 100
+'''
 difficulty = 25;
 win = pygame.display.set_mode((display_width,display_height))
 pygame.display.set_caption('Snake Game by Shehan Atukorala')
 clock = pygame.time.Clock()
+player_name = '';
+default_player_name = True;
 
-def setup_snake_food(food_position):
+def setup_snake_food():
     new_food_position = [random.randrange(1, (display_width//10))* 10, random.randrange(1, (display_height//10)) * 10]
     return new_food_position
 
+def setup_collision_obj():
+    new_collision_obj = [random.randrange(1, (display_width//10))* 10, random.randrange(1, (display_height//10)) * 10]
+    return new_collision_obj 
+
 def set_game_difficulty(selected: Tuple, value: Any):
-    print("Set Difficulty to {} ({})".format(selected[0], value))
+    if(value == 1):
+        difficulty = 25
+    elif(value == 2):
+        difficulty = 50
+    elif(value == 3):
+        difficulty = 100
+    else:
+        difficulty = 25
 
 def show_game_score(font, size, game_score):
     game_score_font = pygame.font.SysFont(font, size);
-    game_score_surface = game_score_font.render("Game Score: " + str(game_score), True, white)
+    game_score_surface = game_score_font.render((player_name + "'s Game Score: " + str(game_score)), True, white)
     game_score_rect = game_score_surface.get_rect()
-    game_score_rect.midtop = (display_height/5, 15)
+    game_score_rect.midtop = (display_height, 15)
     win.blit(game_score_surface, game_score_rect)
 
-end_menu = pygame_menu.Menu(width=display_width, height=display_height, title='Game Over', theme=pygame_menu.themes.THEME_BLUE);
+def show_collision_obj(collision_obj_position, snake_width, snake_height):
+    collision_obj_rect = pygame.Rect(collision_obj_position[0], collision_obj_position[1], snake_width, snake_height)
+    collision_obj_image = pygame.image.load("./red-brick-wall.jpg")
+    collision_obj_image_resize = pygame.transform.scale(collision_obj_image, (snake_width, snake_height))
+    win.blit(collision_obj_image_resize, collision_obj_rect)
+
+def set_player_name(name):
+    global player_name;
+    global default_player_name;
+    player_name = name;
+    default_player_name = False;
+
+def set_default_player_name():
+    global player_name;
+    global default_player_name;
+    player_name = "Guest"
+    default_player_name = False 
+
+
+def show_start_screen():
+    start_menu = pygame_menu.Menu(width=display_width, height=display_height, title='Welcome to Snake Game!', theme=pygame_menu.themes.THEME_BLUE);
+    start_menu.add.text_input("Your Name: ", default="Guest", onchange=set_player_name);
+    start_menu.add.selector("Difficulty: ", [("Easy", 1), ("Medium", 2), ("Hard", 3)], onchange=set_game_difficulty);
+    start_menu.add.button("Play", game_loop);
+    start_menu.add.button("Quit", pygame_menu.events.EXIT);
+    if default_player_name:
+        set_default_player_name();
+    start_menu.mainloop(win)
+
+def replay_game(): 
+    game_loop()
 
 def show_end_screen(game_score):
     end_menu = pygame_menu.Menu(width=display_width, height=display_height, title='Game Over', theme=pygame_menu.themes.THEME_BLUE);
@@ -45,7 +93,6 @@ def show_end_screen(game_score):
     end_menu.mainloop(win)
 
 def game_loop():
-    
     x = display_width/2
     y = display_height/2
     snake_position = [display_width/2, display_height/2]
@@ -58,8 +105,11 @@ def game_loop():
     gameExit = False
     game_score = 0;
 
-    food_position = setup_snake_food([0, 0])
-    show_food = True 
+    food_position = setup_snake_food()
+    show_food = True
+
+    collision_obj_position = setup_collision_obj()
+    show_collision = True  
 
     while not gameExit:
         pygame.time.delay(10)
@@ -106,42 +156,35 @@ def game_loop():
             show_food = False;
         else:
             snake_body.pop();
+        
+        if isclose(snake_position[0], collision_obj_position[0], abs_tol=(snake_width - 10)) and isclose(snake_position[1], collision_obj_position[1], abs_tol=(snake_height - 10)):
+            show_end_screen(game_score);
 
         if not show_food:
-            new_food_position = setup_snake_food(food_position);
-            food_position = new_food_position;
-            show_food = True ;
-
+            food_position = setup_snake_food();
+            show_food = True;
+        if not show_collision:
+            collision_obj_position = setup_collision_obj();
+         
+            show_collision = True;
 
         win.fill(black);
         for pos in snake_body:
-            # Draw all parts of the snake
-            pygame.draw.rect(win, (255, 255, 255), pygame.Rect(pos[0], pos[1], 10, 10))
+            pygame.draw.rect(win, (255, 255, 255), pygame.Rect(pos[0], pos[1], snake_width/2, snake_height/2));
 
-        # Draw food 
         pygame.draw.rect(win, (255, 0, 255), (food_position[0], food_position[1], snake_width/2, snake_height/2));
     
-        # if snake head hits the edge of the screen then end game
+        show_collision_obj(collision_obj_position, snake_width, snake_height);
+
         if snake_position[0] < 0 or snake_position[0] > (display_width - snake_width/2):
             show_end_screen(game_score);
         if snake_position[1] < 0 or snake_position[1] > (display_height - snake_height/2):
-            show_end_screen(game_score);            
+            show_end_screen(game_score);     
+
 
         show_game_score('consolas', 20, game_score)
         pygame.display.update();
 
         clock.tick(difficulty);
-
-def replay_game(): 
-    game_loop()
-
-def show_start_screen():
-    start_menu = pygame_menu.Menu(width=display_width, height=display_height, title='Welcome to Snake Game!', theme=pygame_menu.themes.THEME_BLUE);
-    start_menu.add.text_input("Your Name: ", default='Guest');
-    start_menu.add.selector("Difficulty: ", [("Easy", 1), ("Medium", 2), ("Hard", 3)], onchange=set_game_difficulty);
-    start_menu.add.button("Play", game_loop);
-    start_menu.add.button("Quit", pygame_menu.events.EXIT);
-    start_menu.mainloop(win)
-
 
 show_start_screen()
