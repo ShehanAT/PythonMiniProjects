@@ -61,27 +61,20 @@ WINDOWHEIGHT = 480 # size of windows' height in pixels
 REVEALSPEED = 8 # speed boxes' sliding reveals and covers
 BOXSIZE = 40 # size of box height & width in pixels
 GAPSIZE = 10 # size of gap between boxes in pixels
-# BOARDWIDTH = 10 # number of columns of icons
-# BOARDHEIGHT = 7 # number of rows of icons
-BOARDWIDTH = 4 
-BOARDHEIGHT = 3 
+BOARDWIDTH = 4 # number of columns of icons
+BOARDHEIGHT = 3 # number of rows of icons
 assert (BOARDWIDTH * BOARDHEIGHT) % 2 == 0, 'Board needs to have an even number of boxes for pairs of matches.'
 XMARGIN = int((WINDOWWIDTH - (BOARDWIDTH * (BOXSIZE + GAPSIZE))) / 2)
 YMARGIN = int((WINDOWHEIGHT - (BOARDHEIGHT * (BOXSIZE + GAPSIZE))) / 2)
 GAME_SCORE = 0
+GAME_LEVEL = 1 
 
 
 #            R    G    B
 GRAY     = (100, 100, 100)
 NAVYBLUE = ( 60,  60, 100)
 WHITE    = (255, 255, 255)
-# RED      = (255,   0,   0)
-# GREEN    = (  0, 255,   0)
 BLUE     = (  0,   0, 255)
-# YELLOW   = (255, 255,   0)
-# ORANGE   = (255, 128,   0)
-# PURPLE   = (255,   0, 255)
-# CYAN     = (  0, 255, 255)
 
 
 BGCOLOR = NAVYBLUE
@@ -124,33 +117,6 @@ def levelUp():
     BOARDWIDTH += 1 
     BOARDHEIGHT += 1 
 
-def displayTimer():
-    # global TIMER_RUNNING, TIMER_PAUSED
-
-
-    # while TIMER_RUNNING:
-    #     for event in pygame.event.get():
-    #         if event.type == pygame.QUIT:
-    #             TIMER_RUNNING = False 
-    #         if event.type == pygame.KEYDOWN:
-    #             if event.key == pygame.K_ESCAPE:
-    #                 TIMER_RUNNING = False 
-    #             if event.key == pygame.K_SPACE:
-    #                 TIMER_PAUSED = not TIMER_PAUSED
-
-    #     if not TIMER_PAUSED:
-            
-
-    #         counting_minutes = str(counting_time/60000).zfill(2)
-    #         counting_seconds = str((counting_time%60000)/1000).zfill(2)
-    #         counting_millisecond = str(counting_time%1000).zfill(3)
-
-
-    #     pygame.display.update()
-
-    #     FPSCLOCK.tick(FPS)
-    #     clock.tick(25)
-    pass 
 
 def drawDiamondSprite(color, left, top, width, height):
     diamondImage = None; 
@@ -203,14 +169,11 @@ class Gem(pygame.sprite.Sprite):
     
 
 def main():
-    global FPSCLOCK, DISPLAYSURF, GAME_SCORE 
+    global FPSCLOCK, DISPLAYSURF, GAME_SCORE, GAME_LEVEL
 
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
-
-
-
 
     mousex = 0 # used to store x coordinate of mouse event
     mousey = 0 # used to store y coordinate of mouse event
@@ -231,9 +194,9 @@ def main():
         DISPLAYSURF.fill(BGCOLOR) # drawing the window
         drawBoard(mainBoard, revealedBoxes)
         font = pygame.font.SysFont(None, 32)
-        game_score_string = "Score: " + str(GAME_SCORE)
+        game_score_string = "Score: " + str(GAME_SCORE) + "     Level: " + str(GAME_LEVEL)
         game_score_text = font.render(game_score_string, 1, (255, 255, 255))
-        game_score_rect = game_score_text.get_rect(center = (60, 10))
+        game_score_rect = game_score_text.get_rect(center = (120, 10))
 
         for event in pygame.event.get(): # event handling loop
             if event.type == pygame.QUIT or (event.type == pygame.KEYUP and event.key == pygame.K_ESCAPE):
@@ -270,6 +233,7 @@ def main():
                         gameWonAnimation(mainBoard)
                         pygame.time.wait(2000)
                         levelUp()
+                        GAME_LEVEL += 1
                         # Reset the board
                         mainBoard = getRandomizedBoard()
                         revealedBoxes = generateRevealedBoxesData(False)
