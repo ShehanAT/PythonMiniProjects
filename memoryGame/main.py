@@ -99,13 +99,10 @@ SPRITE_TAN = "tan"
 SPRITE_GREY = "grey"
 SPRITE_TEAL = "teal"
 
-# ALLCOLORS = (RED, GREEN, BLUE, YELLOW, ORANGE, PURPLE, CYAN)
-ALLCOLORS_2 = (SPRITE_RED, SPRITE_GREEN, SPRITE_BLUE, SPRITE_YELLOW, SPRITE_TAN, SPRITE_GREY, SPRITE_TEAL)
-# ALLSHAPES = (DONUT, SQUARE, DIAMOND, LINES, OVAL)
-ALLSHAPES_2 = (DIAMOND, HEXAGON, OCTAGON, SQUARE, TRIANGLE)
+ALLCOLORS = (SPRITE_RED, SPRITE_GREEN, SPRITE_BLUE, SPRITE_YELLOW, SPRITE_TAN, SPRITE_GREY, SPRITE_TEAL)
+ALLSHAPES = (DIAMOND, HEXAGON, OCTAGON, SQUARE, TRIANGLE)
 
-# assert len(ALLCOLORS) * len(ALLSHAPES) * 2 >= BOARDWIDTH * BOARDHEIGHT, "Board is too big for the number of shapes/colors defined."
-assert len(ALLCOLORS_2) * len(ALLSHAPES_2) * 2 >= BOARDWIDTH * BOARDHEIGHT, "Board is too big for the number of shapes/colors defined."
+assert len(ALLCOLORS) * len(ALLSHAPES) * 2 >= BOARDWIDTH * BOARDHEIGHT, "Board is too big for the number of shapes/colors defined."
 
 def drawTestSprite(imagePath, left, top, width, height):
     gemImage = pygame.transform.scale(pygame.image.load(imagePath).convert_alpha(), (width, height))
@@ -266,8 +263,8 @@ def generateRevealedBoxesData(val):
 def getRandomizedBoard():
     # Get a list of every possible shape in every possible color.
     icons = []
-    for color in ALLCOLORS_2:
-        for shape in ALLSHAPES_2:
+    for color in ALLCOLORS:
+        for shape in ALLSHAPES:
             icons.append( (shape, color) )
     random.shuffle(icons) # randomize the order of the icons list
     numIconsUsed = int(BOARDWIDTH * BOARDHEIGHT / 2) # calculate how many icons are needed
@@ -283,7 +280,7 @@ def getRandomizedBoard():
             del icons[0] # remove the icons as we assign them
         board.append(column)
     transposeBoard = [*zip(*board)]
-    print(transposeBoard)
+    # print(transposeBoard)
     return board
 
 
@@ -318,24 +315,6 @@ def drawIcon(shape, color, boxx, boxy):
     half = int(BOXSIZE * 0.5)  # syntactic sugar
 
     left, top = leftTopCoordsOfBox(boxx, boxy) # get pixel coords from board coords
-    # Draw the shapes
-    # if shape == DONUT:
-    #     print(color);
-    #     drawTestSprite(BLUEGEM_ASSETPATH, left + half, top + half, 40, 40)
-    #     pygame.draw.circle(DISPLAYSURF, color, (left + half, top + half), half - 5)
-    #     pygame.draw.circle(DISPLAYSURF, BGCOLOR, (left + half, top + half), quarter - 5)
-    # elif shape == SQUARE:
-    #     print(color);
-    #     drawTestSprite(BLUEGEM_ASSETPATH, left + half, top + half, 40, 40)
-    #     # pygame.draw.rect(DISPLAYSURF, color, (left + quarter, top + quarter, BOXSIZE - half, BOXSIZE - half))
-    # elif shape == DIAMOND:
-    #     pygame.draw.polygon(DISPLAYSURF, color, ((left + half, top), (left + BOXSIZE - 1, top + half), (left + half, top + BOXSIZE - 1), (left, top + half)))
-    # elif shape == LINES:
-    #     for i in range(0, BOXSIZE, 4):
-    #         pygame.draw.line(DISPLAYSURF, color, (left, top + i), (left + i, top))
-    #         pygame.draw.line(DISPLAYSURF, color, (left + i, top + BOXSIZE - 1), (left + BOXSIZE - 1, top + i))
-    # elif shape == OVAL:
-    #     pygame.draw.ellipse(DISPLAYSURF, color, (left, top + quarter, BOXSIZE, half))
     if shape == DIAMOND:
         drawDiamondSprite(color, left + half, top + half, BOXSIZE, BOXSIZE)
     elif shape == HEXAGON:
@@ -357,6 +336,7 @@ def getShapeAndColor(board, boxx, boxy):
 def drawBoxCovers(board, boxes, coverage):
     # Draws boxes being covered/revealed. "boxes" is a list
     # of two-item lists, which have the x & y spot of the box.
+    pauseDisplay = False 
     for box in boxes:
         left, top = leftTopCoordsOfBox(box[0], box[1])
         pygame.draw.rect(DISPLAYSURF, BGCOLOR, (left, top, BOXSIZE, BOXSIZE))
@@ -365,13 +345,20 @@ def drawBoxCovers(board, boxes, coverage):
         # break;
         if coverage > 0: # only draw the cover if there is an coverage
             pygame.draw.rect(DISPLAYSURF, BOXCOLOR, (left, top, coverage, BOXSIZE))
+        # elif coverage <= 0 and pauseDisplay == False:
+        #     pauseDisplay = True 
+        #     pygame.time.wait(1000);
     pygame.display.update()
     FPSCLOCK.tick(FPS)
 
 
 def revealBoxesAnimation(board, boxesToReveal):
     # Do the "box reveal" animation.
+    # for coverage in range(BOXSIZE, (-REVEALSPEED) - 1, -REVEALSPEED):
     for coverage in range(BOXSIZE, (-REVEALSPEED) - 1, -REVEALSPEED):
+        print(coverage);
+        if(coverage < 0):
+            pygame.time.wait(500);
         drawBoxCovers(board, boxesToReveal, coverage)
 
 
@@ -408,7 +395,8 @@ def startGameAnimation(board):
         for y in range(BOARDHEIGHT):
             boxes.append( (x, y) )
     random.shuffle(boxes)
-    boxGroups = splitIntoGroupsOf(8, boxes)
+    boxGroups = splitIntoGroupsOf(BOARDWIDTH*BOARDHEIGHT, boxes)
+    # boxGroups = splitIntoGroupsOf(8, boxes)
 
     drawBoard(board, coveredBoxes)
     for boxGroup in boxGroups:
@@ -433,9 +421,9 @@ def gameWonAnimation(board):
 def hasWon(revealedBoxes):
     global GAME_SCORE
     # Returns True if all the boxes have been revealed, otherwise False
+    GAME_SCORE += 10
     for i in revealedBoxes:
         if False in i:
-            GAME_SCORE += 10
             return False # return False if any boxes are covered.
     return True
 
