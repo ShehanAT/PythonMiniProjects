@@ -8,7 +8,52 @@ import pygame
 import random 
 import sys 
 
-BLUEGEM_ASSETPATH = './assets/singleGem(original).png'
+DIAMOND_ASSETPATH = {
+    "red": "./assets/red_diamond.png",
+    "green": "./assets/green_diamond.png",
+    "blue": "./assets/blue_diamond.png",
+    "yellow": "./assets/yellow_diamond.png",
+    "tan": "./assets/tan_diamond.png",
+    "grey": "./assets/grey_diamond.png",
+    "teal": "./assets/teal_diamond.png"
+}
+HEXAGON_ASSETPATH = {
+    "red": "./assets/red_hexagon.png",
+    "green": "./assets/green_hexagon.png",
+    "blue": "./assets/blue_hexagon.png",
+    "yellow": "./assets/yellow_hexagon.png",
+    "tan": "./assets/tan_hexagon.png",
+    "grey": "./assets/grey_hexagon.png",
+    "teal": "./assets/teal_hexagon.png"
+}
+OCTAGON_ASSETPATH = {
+    "red": "./assets/red_octagon.png",
+    "green": "./assets/green_octagon.png",
+    "blue": "./assets/blue_octagon.png",
+    "yellow": "./assets/yellow_octagon.png",
+    "tan": "./assets/tan_octagon.png",
+    "grey": "./assets/grey_octagon.png",
+    "teal": "./assets/teal_octagon.png"
+}
+SQUARE_ASSETPATH = {
+    "red": "./assets/red_square.png",
+    "green": "./assets/green_square.png",
+    "blue": "./assets/blue_square.png",
+    "yellow": "./assets/yellow_square.png",
+    "tan": "./assets/tan_square.png",
+    "grey": "./assets/grey_square.png",
+    "teal": "./assets/teal_square.png"
+}
+TRIANGLE_ASSETPATH = {
+    "red": "./assets/red_triangle.png",
+    "green": "./assets/green_triangle.png",
+    "blue": "./assets/blue_triangle.png",
+    "yellow": "./assets/yellow_triangle.png",
+    "tan": "./assets/tan_triangle.png",
+    "grey": "./assets/grey_triangle.png",
+    "teal": "./assets/teal_triangle.png"
+}
+
 
 FPS = 30 # frames per second, the general speed of the program
 WINDOWWIDTH = 640 # size of window's width in pixels
@@ -16,46 +61,136 @@ WINDOWHEIGHT = 480 # size of windows' height in pixels
 REVEALSPEED = 8 # speed boxes' sliding reveals and covers
 BOXSIZE = 40 # size of box height & width in pixels
 GAPSIZE = 10 # size of gap between boxes in pixels
-BOARDWIDTH = 10 # number of columns of icons
-BOARDHEIGHT = 7 # number of rows of icons
+# BOARDWIDTH = 10 # number of columns of icons
+# BOARDHEIGHT = 7 # number of rows of icons
+BOARDWIDTH = 4 
+BOARDHEIGHT = 3 
 assert (BOARDWIDTH * BOARDHEIGHT) % 2 == 0, 'Board needs to have an even number of boxes for pairs of matches.'
 XMARGIN = int((WINDOWWIDTH - (BOARDWIDTH * (BOXSIZE + GAPSIZE))) / 2)
 YMARGIN = int((WINDOWHEIGHT - (BOARDHEIGHT * (BOXSIZE + GAPSIZE))) / 2)
+GAME_SCORE = 0
+
 
 #            R    G    B
 GRAY     = (100, 100, 100)
 NAVYBLUE = ( 60,  60, 100)
 WHITE    = (255, 255, 255)
-RED      = (255,   0,   0)
-GREEN    = (  0, 255,   0)
+# RED      = (255,   0,   0)
+# GREEN    = (  0, 255,   0)
 BLUE     = (  0,   0, 255)
-YELLOW   = (255, 255,   0)
-ORANGE   = (255, 128,   0)
-PURPLE   = (255,   0, 255)
-CYAN     = (  0, 255, 255)
+# YELLOW   = (255, 255,   0)
+# ORANGE   = (255, 128,   0)
+# PURPLE   = (255,   0, 255)
+# CYAN     = (  0, 255, 255)
+
 
 BGCOLOR = NAVYBLUE
 LIGHTBGCOLOR = GRAY
 BOXCOLOR = WHITE
 HIGHLIGHTCOLOR = BLUE
 
-DONUT = 'donut'
+TIMER_PAUSED = False 
+TIMER_RUNNING = True 
+
 SQUARE = 'square'
 DIAMOND = 'diamond'
-LINES = 'lines'
-OVAL = 'oval'
+HEXAGON = 'hexagon'
+OCTAGON = 'octagon'
+TRIANGLE = 'triangle'
 
-ALLCOLORS = (RED, GREEN, BLUE, YELLOW, ORANGE, PURPLE, CYAN)
-ALLSHAPES = (DONUT, SQUARE, DIAMOND, LINES, OVAL)
-assert len(ALLCOLORS) * len(ALLSHAPES) * 2 >= BOARDWIDTH * BOARDHEIGHT, "Board is too big for the number of shapes/colors defined."
+SPRITE_RED = "red"
+SPRITE_GREEN = "green"
+SPRITE_BLUE = "blue"
+SPRITE_YELLOW = "yellow"
+SPRITE_TAN = "tan"
+SPRITE_GREY = "grey"
+SPRITE_TEAL = "teal"
 
+# ALLCOLORS = (RED, GREEN, BLUE, YELLOW, ORANGE, PURPLE, CYAN)
+ALLCOLORS_2 = (SPRITE_RED, SPRITE_GREEN, SPRITE_BLUE, SPRITE_YELLOW, SPRITE_TAN, SPRITE_GREY, SPRITE_TEAL)
+# ALLSHAPES = (DONUT, SQUARE, DIAMOND, LINES, OVAL)
+ALLSHAPES_2 = (DIAMOND, HEXAGON, OCTAGON, SQUARE, TRIANGLE)
+
+# assert len(ALLCOLORS) * len(ALLSHAPES) * 2 >= BOARDWIDTH * BOARDHEIGHT, "Board is too big for the number of shapes/colors defined."
+assert len(ALLCOLORS_2) * len(ALLSHAPES_2) * 2 >= BOARDWIDTH * BOARDHEIGHT, "Board is too big for the number of shapes/colors defined."
 
 def drawTestSprite(imagePath, left, top, width, height):
     gemImage = pygame.transform.scale(pygame.image.load(imagePath).convert_alpha(), (width, height))
     gem = Gem((left, top), gemImage)
     gem.draw(DISPLAYSURF)
 
+def levelUp():
+    global BOARDWIDTH, BOARDHEIGHT
+    BOARDWIDTH += 1 
+    BOARDHEIGHT += 1 
 
+def displayTimer():
+    # global TIMER_RUNNING, TIMER_PAUSED
+
+
+    # while TIMER_RUNNING:
+    #     for event in pygame.event.get():
+    #         if event.type == pygame.QUIT:
+    #             TIMER_RUNNING = False 
+    #         if event.type == pygame.KEYDOWN:
+    #             if event.key == pygame.K_ESCAPE:
+    #                 TIMER_RUNNING = False 
+    #             if event.key == pygame.K_SPACE:
+    #                 TIMER_PAUSED = not TIMER_PAUSED
+
+    #     if not TIMER_PAUSED:
+            
+
+    #         counting_minutes = str(counting_time/60000).zfill(2)
+    #         counting_seconds = str((counting_time%60000)/1000).zfill(2)
+    #         counting_millisecond = str(counting_time%1000).zfill(3)
+
+
+    #     pygame.display.update()
+
+    #     FPSCLOCK.tick(FPS)
+    #     clock.tick(25)
+    pass 
+
+def drawDiamondSprite(color, left, top, width, height):
+    diamondImage = None; 
+    if(DIAMOND_ASSETPATH[color]):
+        diamondImage = DIAMOND_ASSETPATH[color];
+    diamondImage = pygame.transform.scale(pygame.image.load(diamondImage).convert_alpha(), (width, height))
+    diamond = Gem((left, top), diamondImage)
+    diamond.draw(DISPLAYSURF)
+
+def drawHexagonSprite(color, left, top, width, height):
+    hexagonImage = None; 
+    if(HEXAGON_ASSETPATH[color]):
+        hexagonImage = HEXAGON_ASSETPATH[color];
+    hexagonImage = pygame.transform.scale(pygame.image.load(hexagonImage).convert_alpha(), (width, height))
+    hexagon = Gem((left, top), hexagonImage)
+    hexagon.draw(DISPLAYSURF)
+
+def drawOctagonSprite(color, left, top, width, height):
+    octagonImage = None; 
+    if(OCTAGON_ASSETPATH[color]):
+        octagonImage = OCTAGON_ASSETPATH[color];
+    octagonImage = pygame.transform.scale(pygame.image.load(octagonImage).convert_alpha(), (width, height))
+    octagon = Gem((left, top), octagonImage)
+    octagon.draw(DISPLAYSURF)
+
+def drawSquareSprite(color, left, top, width, height):
+    squareImage = None; 
+    if(SQUARE_ASSETPATH[color]):
+        squareImage = SQUARE_ASSETPATH[color];
+    squareImage = pygame.transform.scale(pygame.image.load(squareImage).convert_alpha(), (width, height))
+    square = Gem((left, top), squareImage)
+    square.draw(DISPLAYSURF)
+
+def drawTriangleSprite(color, left, top, width, height):
+    triangleImage = None; 
+    if(TRIANGLE_ASSETPATH[color]):
+        triangleImage =TRIANGLE_ASSETPATH[color];
+    triangleImage = pygame.transform.scale(pygame.image.load(triangleImage).convert_alpha(), (width, height))
+    triangle = Gem((left, top), triangleImage)
+    triangle.draw(DISPLAYSURF)
 
 class Gem(pygame.sprite.Sprite):
     def __init__(self, pos, image):
@@ -68,7 +203,8 @@ class Gem(pygame.sprite.Sprite):
     
 
 def main():
-    global FPSCLOCK, DISPLAYSURF
+    global FPSCLOCK, DISPLAYSURF, GAME_SCORE 
+
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
@@ -87,12 +223,17 @@ def main():
 
     DISPLAYSURF.fill(BGCOLOR)
     startGameAnimation(mainBoard)
+    start_time = pygame.time.get_ticks()
 
     while True: # main game loop
         mouseClicked = False
 
         DISPLAYSURF.fill(BGCOLOR) # drawing the window
         drawBoard(mainBoard, revealedBoxes)
+        font = pygame.font.SysFont(None, 32)
+        game_score_string = "Score: " + str(GAME_SCORE)
+        game_score_text = font.render(game_score_string, 1, (255, 255, 255))
+        game_score_rect = game_score_text.get_rect(center = (60, 10))
 
         for event in pygame.event.get(): # event handling loop
             if event.type == pygame.QUIT or (event.type == pygame.KEYUP and event.key == pygame.K_ESCAPE):
@@ -103,7 +244,8 @@ def main():
             elif event.type == pygame.MOUSEBUTTONUP:
                 mousex, mousey = event.pos
                 mouseClicked = True
-
+        DISPLAYSURF.fill((0, 0, 0), (0, 0, 250, 30))
+        DISPLAYSURF.blit(game_score_text, game_score_rect)
         boxx, boxy = getBoxAtPixel(mousex, mousey)
         if boxx != None and boxy != None:
             # The mouse is currently over a box.
@@ -118,8 +260,6 @@ def main():
                     # Check if there is a match between the two icons.
                     icon1shape, icon1color = getShapeAndColor(mainBoard, firstSelection[0], firstSelection[1])
                     icon2shape, icon2color = getShapeAndColor(mainBoard, boxx, boxy)
-                    print(icon1shape, icon1color);
-                    print(icon2shape, icon2color);
                     if icon1shape != icon2shape or icon1color != icon2color:
                         # Icons don't match. Re-cover up both selections.
                         pygame.time.wait(1000) # 1000 milliseconds = 1 sec
@@ -129,21 +269,24 @@ def main():
                     elif hasWon(revealedBoxes): # check if all pairs found
                         gameWonAnimation(mainBoard)
                         pygame.time.wait(2000)
-
+                        levelUp()
                         # Reset the board
                         mainBoard = getRandomizedBoard()
                         revealedBoxes = generateRevealedBoxesData(False)
 
                         # Show the fully unrevealed board for a second.
+                        
                         drawBoard(mainBoard, revealedBoxes)
+
                         pygame.display.update()
                         pygame.time.wait(1000)
-
                         # Replay the start game animation.
                         startGameAnimation(mainBoard)
+                    
                     firstSelection = None # reset firstSelection variable
 
         # Redraw the screen and wait a clock tick.
+        
         pygame.display.update()
        
         FPSCLOCK.tick(FPS)
@@ -159,10 +302,9 @@ def generateRevealedBoxesData(val):
 def getRandomizedBoard():
     # Get a list of every possible shape in every possible color.
     icons = []
-    for color in ALLCOLORS:
-        for shape in ALLSHAPES:
+    for color in ALLCOLORS_2:
+        for shape in ALLSHAPES_2:
             icons.append( (shape, color) )
-
     random.shuffle(icons) # randomize the order of the icons list
     numIconsUsed = int(BOARDWIDTH * BOARDHEIGHT / 2) # calculate how many icons are needed
     icons = icons[:numIconsUsed] * 2 # make two of each
@@ -176,6 +318,8 @@ def getRandomizedBoard():
             column.append(icons[0])
             del icons[0] # remove the icons as we assign them
         board.append(column)
+    transposeBoard = [*zip(*board)]
+    print(transposeBoard)
     return board
 
 
@@ -207,31 +351,37 @@ def getBoxAtPixel(x, y):
 
 def drawIcon(shape, color, boxx, boxy):
     quarter = int(BOXSIZE * 0.25) # syntactic sugar
-    half =    int(BOXSIZE * 0.5)  # syntactic sugar
-
-    
+    half = int(BOXSIZE * 0.5)  # syntactic sugar
 
     left, top = leftTopCoordsOfBox(boxx, boxy) # get pixel coords from board coords
-    
-
     # Draw the shapes
-    if shape == DONUT:
-        print(color);
-        drawTestSprite(BLUEGEM_ASSETPATH, left + half, top + half, 40, 40)
-        # pygame.draw.circle(DISPLAYSURF, color, (left + half, top + half), half - 5)
-        # pygame.draw.circle(DISPLAYSURF, BGCOLOR, (left + half, top + half), quarter - 5)
+    # if shape == DONUT:
+    #     print(color);
+    #     drawTestSprite(BLUEGEM_ASSETPATH, left + half, top + half, 40, 40)
+    #     pygame.draw.circle(DISPLAYSURF, color, (left + half, top + half), half - 5)
+    #     pygame.draw.circle(DISPLAYSURF, BGCOLOR, (left + half, top + half), quarter - 5)
+    # elif shape == SQUARE:
+    #     print(color);
+    #     drawTestSprite(BLUEGEM_ASSETPATH, left + half, top + half, 40, 40)
+    #     # pygame.draw.rect(DISPLAYSURF, color, (left + quarter, top + quarter, BOXSIZE - half, BOXSIZE - half))
+    # elif shape == DIAMOND:
+    #     pygame.draw.polygon(DISPLAYSURF, color, ((left + half, top), (left + BOXSIZE - 1, top + half), (left + half, top + BOXSIZE - 1), (left, top + half)))
+    # elif shape == LINES:
+    #     for i in range(0, BOXSIZE, 4):
+    #         pygame.draw.line(DISPLAYSURF, color, (left, top + i), (left + i, top))
+    #         pygame.draw.line(DISPLAYSURF, color, (left + i, top + BOXSIZE - 1), (left + BOXSIZE - 1, top + i))
+    # elif shape == OVAL:
+    #     pygame.draw.ellipse(DISPLAYSURF, color, (left, top + quarter, BOXSIZE, half))
+    if shape == DIAMOND:
+        drawDiamondSprite(color, left + half, top + half, BOXSIZE, BOXSIZE)
+    elif shape == HEXAGON:
+        drawHexagonSprite(color, left + half, top + half, BOXSIZE, BOXSIZE)
+    elif shape == OCTAGON:
+        drawOctagonSprite(color, left + half, top + half, BOXSIZE, BOXSIZE)
     elif shape == SQUARE:
-        print(color);
-        drawTestSprite(BLUEGEM_ASSETPATH, left + half, top + half, 40, 40)
-        # pygame.draw.rect(DISPLAYSURF, color, (left + quarter, top + quarter, BOXSIZE - half, BOXSIZE - half))
-    elif shape == DIAMOND:
-        pygame.draw.polygon(DISPLAYSURF, color, ((left + half, top), (left + BOXSIZE - 1, top + half), (left + half, top + BOXSIZE - 1), (left, top + half)))
-    elif shape == LINES:
-        for i in range(0, BOXSIZE, 4):
-            pygame.draw.line(DISPLAYSURF, color, (left, top + i), (left + i, top))
-            pygame.draw.line(DISPLAYSURF, color, (left + i, top + BOXSIZE - 1), (left + BOXSIZE - 1, top + i))
-    elif shape == OVAL:
-        pygame.draw.ellipse(DISPLAYSURF, color, (left, top + quarter, BOXSIZE, half))
+        drawSquareSprite(color, left + half, top + half, BOXSIZE, BOXSIZE)
+    elif shape == TRIANGLE:
+        drawTriangleSprite(color, left + half, top + half, BOXSIZE, BOXSIZE)
 
 
 def getShapeAndColor(board, boxx, boxy):
@@ -317,9 +467,11 @@ def gameWonAnimation(board):
 
 
 def hasWon(revealedBoxes):
+    global GAME_SCORE
     # Returns True if all the boxes have been revealed, otherwise False
     for i in revealedBoxes:
         if False in i:
+            GAME_SCORE += 10
             return False # return False if any boxes are covered.
     return True
 
