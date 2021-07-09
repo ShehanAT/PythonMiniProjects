@@ -5,6 +5,7 @@
 # Released under a "Simplified BSD" license
 
 import pygame
+import pygame_menu 
 import random 
 import sys 
 
@@ -68,6 +69,7 @@ XMARGIN = int((WINDOWWIDTH - (BOARDWIDTH * (BOXSIZE + GAPSIZE))) / 2)
 YMARGIN = int((WINDOWHEIGHT - (BOARDHEIGHT * (BOXSIZE + GAPSIZE))) / 2)
 GAME_SCORE = 0
 GAME_LEVEL = 1 
+GAME_PAUSED = False 
 
 
 #            R    G    B
@@ -155,6 +157,20 @@ def drawTriangleSprite(color, left, top, width, height):
     triangle = Gem((left, top), triangleImage)
     triangle.draw(DISPLAYSURF)
 
+# def unPauseGame(pause_menu):
+#     global GAME_PAUSED 
+#     if GAME_PAUSED == True:
+#         GAME_PAUSED = False 
+        
+
+
+# def drawGamePauseScreen():
+#     pause_menu = pygame_menu.Menu(width=WINDOWWIDTH, height=WINDOWHEIGHT, title='Memory Game Paused!', theme=pygame_menu.themes.THEME_BLUE);
+#     # pause_menu.add.button("Resume", unPauseGame);
+#     pause_menu.add.button("Resume", pygame_menu.events.BACK);
+#     pause_menu.add.button("Quit", pygame_menu.events.EXIT);
+#     pause_menu.mainloop(DISPLAYSURF)
+
 class Gem(pygame.sprite.Sprite):
     def __init__(self, pos, image):
         super().__init__()
@@ -163,10 +179,55 @@ class Gem(pygame.sprite.Sprite):
 
     def draw(self, screen):
         screen.blit(self.image, self.rect);
-    
+
+def text_objects(text, font):
+    textSurface = font.render(text, True, (0,0,0))
+    return textSurface, textSurface.get_rect()
+
+def button(msg,x,y,w,h,ic,ac,action=None):
+    mouse = pygame.mouse.get_pos()
+    click = pygame.mouse.get_pressed()
+    print(click)
+    if x+w > mouse[0] > x and y+h > mouse[1] > y:
+        pygame.draw.rect(DISPLAYSURF, ac,(x,y,w,h))
+
+        if click[0] == 1 and action != None:
+            action()         
+    else:
+        pygame.draw.rect(DISPLAYSURF, ic,(x,y,w,h))
+
+    smallText = pygame.font.SysFont("comicsansms",20)
+    textSurf, textRect = text_objects(msg, smallText)
+    textRect.center = ( (x+(w/2)), (y+(h/2)) )
+    DISPLAYSURF.blit(textSurf, textRect)
+
+def unpause():
+    global GAME_PAUSED 
+    GAME_PAUSED = False 
+
+def quit_game():
+    pygame.quit()
+    sys.exit()
+
+def pause():
+    font = pygame.font.SysFont("Consolas", 32)
+    while GAME_PAUSED:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        pause_text = font.render("Game Paused", 1, (255, 255, 255))
+        pause_rect = pause_text.get_rect(center = (WINDOWWIDTH/2, WINDOWHEIGHT/2 - 180))
+            # DISPLAYSURF.fill(0,0,0);
+        DISPLAYSURF.blit(pause_text, pause_rect)
+        button("Resume", WINDOWWIDTH/2, WINDOWHEIGHT/2 - 100, 100, 50, NAVYBLUE, GRAY, unpause)
+        button("Quit", WINDOWWIDTH/2, WINDOWHEIGHT/2 - 150, 100, 50, NAVYBLUE, GRAY, quit_game)
+        pygame.display.update()
+        FPSCLOCK.tick(FPS)
+
 
 def main():
-    global FPSCLOCK, DISPLAYSURF, GAME_SCORE, GAME_LEVEL
+    global FPSCLOCK, DISPLAYSURF, GAME_SCORE, GAME_LEVEL, GAME_PAUSED 
 
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
@@ -196,14 +257,18 @@ def main():
         game_score_rect = game_score_text.get_rect(center = (120, 10))
 
         for event in pygame.event.get(): # event handling loop
-            if event.type == pygame.QUIT or (event.type == pygame.KEYUP and event.key == pygame.K_ESCAPE):
+            if event.type == pygame.QUIT:
+            # or (event.type == pygame.KEYUP and event.key == pygame.K_ESCAPE):
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.KEYUP and event.key == pygame.K_ESCAPE:
+                GAME_PAUSED = True  
             elif event.type == pygame.MOUSEMOTION:
                 mousex, mousey = event.pos
             elif event.type == pygame.MOUSEBUTTONUP:
                 mousex, mousey = event.pos
                 mouseClicked = True
+            pause()
         DISPLAYSURF.fill((0, 0, 0), (0, 0, 250, 30))
         DISPLAYSURF.blit(game_score_text, game_score_rect)
         boxx, boxy = getBoxAtPixel(mousex, mousey)
@@ -358,7 +423,7 @@ def revealBoxesAnimation(board, boxesToReveal):
     for coverage in range(BOXSIZE, (-REVEALSPEED) - 1, -REVEALSPEED):
         print(coverage);
         if(coverage < 0):
-            pygame.time.wait(500);
+            pygame.time.wait(1000);
         drawBoxCovers(board, boxesToReveal, coverage)
 
 
