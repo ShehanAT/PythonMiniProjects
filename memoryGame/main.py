@@ -157,20 +157,6 @@ def drawTriangleSprite(color, left, top, width, height):
     triangle = Gem((left, top), triangleImage)
     triangle.draw(DISPLAYSURF)
 
-# def unPauseGame(pause_menu):
-#     global GAME_PAUSED 
-#     if GAME_PAUSED == True:
-#         GAME_PAUSED = False 
-        
-
-
-# def drawGamePauseScreen():
-#     pause_menu = pygame_menu.Menu(width=WINDOWWIDTH, height=WINDOWHEIGHT, title='Memory Game Paused!', theme=pygame_menu.themes.THEME_BLUE);
-#     # pause_menu.add.button("Resume", unPauseGame);
-#     pause_menu.add.button("Resume", pygame_menu.events.BACK);
-#     pause_menu.add.button("Quit", pygame_menu.events.EXIT);
-#     pause_menu.mainloop(DISPLAYSURF)
-
 class Gem(pygame.sprite.Sprite):
     def __init__(self, pos, image):
         super().__init__()
@@ -190,7 +176,6 @@ def button(msg,x,y,w,h,ic,ac,action=None):
     print(click)
     if x+w > mouse[0] > x and y+h > mouse[1] > y:
         pygame.draw.rect(DISPLAYSURF, ac,(x,y,w,h))
-
         if click[0] == 1 and action != None:
             action()         
     else:
@@ -217,11 +202,14 @@ def pause():
                 pygame.quit()
                 sys.exit()
         pause_text = font.render("Game Paused", 1, (255, 255, 255))
-        pause_rect = pause_text.get_rect(center = (WINDOWWIDTH/2, WINDOWHEIGHT/2 - 180))
-            # DISPLAYSURF.fill(0,0,0);
-        DISPLAYSURF.blit(pause_text, pause_rect)
-        button("Resume", WINDOWWIDTH/2, WINDOWHEIGHT/2 - 100, 100, 50, NAVYBLUE, GRAY, unpause)
-        button("Quit", WINDOWWIDTH/2, WINDOWHEIGHT/2 - 150, 100, 50, NAVYBLUE, GRAY, quit_game)
+        pause_rect = pause_text.get_rect(center = (WINDOWWIDTH/2, WINDOWHEIGHT/2 - 210))
+        print(pause_text.get_size())
+        pause_surface = pygame.Surface((210, 145))
+        pause_surface.fill((0, 0, 0))
+        pause_surface.blit(pause_text, (0, 0))
+        DISPLAYSURF.blit(pause_surface, pause_rect)
+        button("Resume", WINDOWWIDTH/2 - 35, WINDOWHEIGHT/2 - 140, 100, 50, NAVYBLUE, GRAY, unpause)
+        button("Quit", WINDOWWIDTH/2 - 35, WINDOWHEIGHT/2 - 190, 100, 50, NAVYBLUE, GRAY, quit_game)
         pygame.display.update()
         FPSCLOCK.tick(FPS)
 
