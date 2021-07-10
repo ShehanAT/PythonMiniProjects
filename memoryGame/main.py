@@ -64,7 +64,6 @@ BOXSIZE = 40 # size of box height & width in pixels
 GAPSIZE = 10 # size of gap between boxes in pixels
 BOARDWIDTH = 4 # number of columns of icons
 BOARDHEIGHT = 3 # number of rows of icons
-assert (BOARDWIDTH * BOARDHEIGHT) % 2 == 0, 'Board needs to have an even number of boxes for pairs of matches.'
 XMARGIN = int((WINDOWWIDTH - (BOARDWIDTH * (BOXSIZE + GAPSIZE))) / 2)
 YMARGIN = int((WINDOWHEIGHT - (BOARDHEIGHT * (BOXSIZE + GAPSIZE))) / 2)
 GAME_SCORE = 0
@@ -103,13 +102,6 @@ SPRITE_TEAL = "teal"
 
 ALLCOLORS = (SPRITE_RED, SPRITE_GREEN, SPRITE_BLUE, SPRITE_YELLOW, SPRITE_TAN, SPRITE_GREY, SPRITE_TEAL)
 ALLSHAPES = (DIAMOND, HEXAGON, OCTAGON, SQUARE, TRIANGLE)
-
-assert len(ALLCOLORS) * len(ALLSHAPES) * 2 >= BOARDWIDTH * BOARDHEIGHT, "Board is too big for the number of shapes/colors defined."
-
-def drawTestSprite(imagePath, left, top, width, height):
-    gemImage = pygame.transform.scale(pygame.image.load(imagePath).convert_alpha(), (width, height))
-    gem = Gem((left, top), gemImage)
-    gem.draw(DISPLAYSURF)
 
 def levelUp():
     global BOARDWIDTH, BOARDHEIGHT
