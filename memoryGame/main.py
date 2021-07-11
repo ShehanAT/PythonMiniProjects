@@ -390,9 +390,6 @@ def drawBoxCovers(board, boxes, coverage):
         # break;
         if coverage > 0: # only draw the cover if there is an coverage
             pygame.draw.rect(DISPLAYSURF, BOXCOLOR, (left, top, coverage, BOXSIZE))
-        # elif coverage <= 0 and pauseDisplay == False:
-        #     pauseDisplay = True 
-        #     pygame.time.wait(1000);
     pygame.display.update()
     FPSCLOCK.tick(FPS)
 
